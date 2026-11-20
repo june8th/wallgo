@@ -1,0 +1,196 @@
+/* ============================================================================
+   Wall Go (벽바둑) — Warm Walnut & Honed Limestone Tabletop Design Tokens
+   Pure Vanilla CSS (zero framework dependencies)
+   ============================================================================ */
+
+:root {
+  /* Tabletop & Stone Surfaces */
+  --bg-table: #ece5d8;
+  --bg-table-edge: #ddd3c0;
+  --surface-card: #faf6ee;
+  --surface-card-elevated: #fffdf8;
+  --surface-subtle: #f1eade;
+  --surface-tile: #f7f3ea;
+  --surface-tile-alt: #f2ece0;
+  --surface-groove: #d4c7b2;
+  --surface-groove-shadow: #b8a78d;
+
+  /* Walnut Wood Board Frame */
+  --wood-deep: #462c18;
+  --wood-dark: #54361f;
+  --wood-mid: #6a462b;
+  --wood-light: #855a38;
+  --wood-highlight: rgba(255, 232, 198, 0.24);
+  --brass-text: #dfc492;
+  --brass-accent: #c9973e;
+  --brass-accent-strong: #b47d21;
+
+  /* Ink & Borders (WCAG AA >= 4.5:1 verified) */
+  --ink-primary: #2a1f16;
+  --ink-secondary: #5a4838;
+  --ink-muted: #705e4d;
+  --ink-on-dark: #fffdf9;
+  --border-subtle: rgba(84, 54, 31, 0.16);
+  --border-medium: rgba(84, 54, 31, 0.28);
+  --border-strong: rgba(84, 54, 31, 0.42);
+
+  /* 3 High-Contrast Lacquered Player Palettes */
+  --p1-main: #c84b31;
+  --p1-light: #e26d53;
+  --p1-dark: #8e301c;
+  --p1-wash: rgba(200, 75, 49, 0.2);
+  --p1-wash-border: rgba(200, 75, 49, 0.44);
+
+  --p2-main: #2b5f8f;
+  --p2-light: #4d86ba;
+  --p2-dark: #1b3f61;
+  --p2-wash: rgba(43, 95, 143, 0.2);
+  --p2-wash-border: rgba(43, 95, 143, 0.44);
+
+  --p3-main: #2e7d5b;
+  --p3-light: #4da17c;
+  --p3-dark: #1c523b;
+  --p3-wash: rgba(46, 125, 91, 0.2);
+  --p3-wash-border: rgba(46, 125, 91, 0.44);
+
+  /* Action Highlights (Distinct from all 3 player washes) */
+  --move-normal-fill: rgba(217, 155, 38, 0.26);
+  --move-normal-ring: #c48320;
+  --move-stay-fill: rgba(106, 70, 43, 0.14);
+  --move-stay-ring: #7c4f2b;
+  --move-break-fill: rgba(217, 72, 42, 0.24);
+  --move-break-ring: #d9482a;
+
+  /* Timer Urgency */
+  --timer-warning-bg: #fef3dc;
+  --timer-warning-ink: #8f560a;
+  --timer-critical-bg: #fde5e0;
+  --timer-critical-ink: #a62b17;
+
+  /* Typography */
+  --font-sans:
+    'Noto Sans KR', 'Noto Sans CJK KR', 'Apple SD Gothic Neo', 'Malgun Gothic',
+    -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-numeric: 'Outfit', 'Noto Sans KR', 'Noto Sans CJK KR', ui-sans-serif, system-ui, sans-serif;
+
+  /* Shadows & Elevation */
+  --shadow-card: 0 2px 8px rgba(42, 31, 22, 0.08), 0 1px 2px rgba(42, 31, 22, 0.06);
+  --shadow-elevated: 0 10px 28px rgba(42, 31, 22, 0.18), 0 2px 6px rgba(42, 31, 22, 0.1);
+  --shadow-board:
+    0 14px 36px rgba(42, 31, 22, 0.26),
+    0 4px 10px rgba(42, 31, 22, 0.16),
+    inset 0 2px 1px rgba(255, 236, 204, 0.28),
+    inset 0 -3px 6px rgba(32, 18, 8, 0.42);
+  --shadow-piece:
+    0 4px 8px rgba(30, 18, 10, 0.34),
+    0 1px 2px rgba(30, 18, 10, 0.26),
+    inset 0 2px 3px rgba(255, 255, 255, 0.38),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.28);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Transitions */
+  --ease-tactile: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur-med: 220ms;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--ink-primary);
+  background-color: var(--bg-table);
+  background-image:
+    radial-gradient(ellipse at 42% 35%, rgba(255, 252, 245, 0.72) 0%, rgba(236, 229, 216, 0.2) 55%, rgba(198, 184, 160, 0.5) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--brass-accent);
+  outline-offset: 2px;
+}
+
+.num {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Player theme variable scoping */
+[data-player-color='p1'] {
+  --player-main: var(--p1-main);
+  --player-light: var(--p1-light);
+  --player-dark: var(--p1-dark);
+  --player-wash: var(--p1-wash);
+  --player-wash-border: var(--p1-wash-border);
+}
+
+[data-player-color='p2'] {
+  --player-main: var(--p2-main);
+  --player-light: var(--p2-light);
+  --player-dark: var(--p2-dark);
+  --player-wash: var(--p2-wash);
+  --player-wash-border: var(--p2-wash-border);
+}
+
+[data-player-color='p3'] {
+  --player-main: var(--p3-main);
+  --player-light: var(--p3-light);
+  --player-dark: var(--p3-dark);
+  --player-wash: var(--p3-wash);
+  --player-wash-border: var(--p3-wash-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
