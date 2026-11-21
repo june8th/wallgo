@@ -1,0 +1,696 @@
+/* ============================================================================
+   Wall Go v2 — Lobby Navigation Bar, Online Panel, Waiting Room & Online HUD
+   Warm Walnut & Honed Limestone Theme (3-Tier Responsive, Zero !important motion)
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   1. Lobby Navigation Bar (Local / Online / Match History)
+   ---------------------------------------------------------------------------- */
+
+.lobby-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.lobby-nav-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  flex: 1 1 auto;
+  max-width: 340px;
+  min-width: 0;
+}
+
+.lobby-nav-tab {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.lobby-nav-tab:hover {
+  color: var(--ink-primary);
+}
+
+.lobby-nav-tab[aria-selected='true'] {
+  background: var(--wood-mid);
+  color: var(--ink-on-dark);
+  box-shadow: 0 2px 5px rgba(42, 31, 22, 0.18);
+}
+
+.lobby-nav-history {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-card-elevated);
+  color: var(--ink-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.lobby-nav-history:hover {
+  background: var(--surface-card);
+  border-color: var(--wood-mid);
+}
+
+/* ----------------------------------------------------------------------------
+   2. Online Lobby Panel (online-panel)
+   ---------------------------------------------------------------------------- */
+
+.online-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.online-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 760px) and (max-height: 860px) {
+  .online-panel-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 14px;
+    align-items: start;
+  }
+}
+
+@media (min-aspect-ratio: 6/5) and (min-width: 860px) {
+  .online-panel-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+.online-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-card-elevated);
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+
+.online-card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink-primary);
+}
+
+.online-card-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-secondary);
+}
+
+.online-nickname-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.online-field-label {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+
+.online-text-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  height: 38px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-card);
+  color: var(--ink-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.online-text-input:focus {
+  border-color: var(--wood-mid);
+  background: var(--surface-card-elevated);
+}
+
+.room-code-input {
+  width: 100%;
+  height: 48px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-medium);
+  background: var(--surface-card);
+  color: var(--ink-primary);
+  font-family: var(--font-numeric);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.room-code-input:focus {
+  border-color: var(--wood-mid);
+  background: var(--surface-card-elevated);
+}
+
+.btn-online-primary {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--wood-dark);
+  background: linear-gradient(135deg, #91623d 0%, var(--wood-mid) 55%, var(--wood-dark) 100%);
+  color: var(--ink-on-dark);
+  font-size: 0.95rem;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(84, 54, 31, 0.22);
+  transition: filter var(--dur-fast) ease, transform var(--dur-fast) var(--ease-tactile);
+}
+
+.btn-online-primary:not(:disabled):hover {
+  filter: brightness(1.07);
+}
+
+.btn-online-primary:disabled {
+  opacity: 0.48;
+  box-shadow: none;
+}
+
+.btn-online-secondary {
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border-medium);
+  background: var(--surface-card-elevated);
+  color: var(--ink-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.btn-online-secondary:not(:disabled):hover {
+  background: var(--surface-subtle);
+  border-color: var(--wood-mid);
+}
+
+.btn-online-secondary[data-copied='true'] {
+  background: #e1f3ea;
+  border-color: rgba(46, 125, 91, 0.45);
+  color: #1c5c40;
+}
+
+.online-error-message {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: #fdeae4;
+  border: 1.5px solid rgba(200, 75, 49, 0.42);
+  color: #9e2d18;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.redis-unconfigured-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: #fbf2e1;
+  border: 1.5px solid rgba(180, 125, 33, 0.44);
+  color: #6b430b;
+  font-size: 0.82rem;
+  line-height: 1.48;
+}
+
+.redis-unconfigured-notice strong {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.redis-unconfigured-notice ol {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.redis-unconfigured-notice code {
+  background: rgba(106, 70, 43, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
+/* ----------------------------------------------------------------------------
+   3. Online Waiting Room (online-room-screen)
+   ---------------------------------------------------------------------------- */
+
+.online-room-screen {
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding:
+    max(14px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(14px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.online-room-shell {
+  width: min(920px, 100%);
+  min-width: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(14px, 2.2vw, 24px);
+  background: var(--surface-card);
+  border: 2px solid rgba(106, 70, 43, 0.24);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 18px 42px rgba(42, 31, 22, 0.16),
+    0 3px 10px rgba(42, 31, 22, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 767px), (max-height: 679px) {
+  .online-room-screen {
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: start;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .online-room-shell {
+    max-height: none;
+  }
+}
+
+.invite-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.invite-code-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-code-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-numeric);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--wood-mid), var(--wood-dark));
+  color: var(--brass-text);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.invite-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.online-room-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+@media (min-width: 760px) and (max-height: 860px) {
+  .online-room-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+@media (min-aspect-ratio: 6/5) and (min-width: 860px) {
+  .online-room-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+    gap: 18px;
+    align-items: start;
+  }
+}
+
+.room-seat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-seat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-card-elevated);
+  border: 1.5px solid var(--border-subtle);
+  border-left: 4px solid var(--player-main, var(--wood-mid));
+}
+
+.room-seat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.room-seat-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.room-seat-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-seat-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.room-seat-role-select {
+  height: 34px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-card);
+  color: var(--ink-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.btn-room-kick {
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(200, 75, 49, 0.42);
+  background: #fdeae4;
+  color: #9e2d18;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.btn-room-kick:hover {
+  background: #fbd8ce;
+}
+
+.room-spectator-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  max-height: 110px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.room-spectator-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-card-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-secondary);
+}
+
+.online-room-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ----------------------------------------------------------------------------
+   4. Online Game HUD Extensions (Strictly Inside the 5 v1 Landmarks)
+   ---------------------------------------------------------------------------- */
+
+.online-connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.online-connection-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.online-connection-badge[data-status='connected'] {
+  background: #e1f3ea;
+  color: #1c5c40;
+  border: 1px solid rgba(46, 125, 91, 0.34);
+}
+
+.online-connection-badge[data-status='connected']::before {
+  background: #2e7d5b;
+}
+
+.online-connection-badge[data-status='reconnecting'] {
+  background: #fef3dc;
+  color: #8f560a;
+  border: 1px solid rgba(180, 125, 33, 0.42);
+}
+
+.online-connection-badge[data-status='reconnecting']::before {
+  background: #c9973e;
+  animation: online-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.online-connection-badge[data-status='disconnected'] {
+  background: #fde5e0;
+  color: #a62b17;
+  border: 1px solid rgba(200, 75, 49, 0.45);
+}
+
+.online-connection-badge[data-status='disconnected']::before {
+  background: #c84b31;
+}
+
+@keyframes online-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.btn-online-invite {
+  height: 30px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-card-elevated);
+  color: var(--ink-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.btn-online-invite:hover {
+  background: var(--surface-subtle);
+  border-color: var(--wood-mid);
+}
+
+.btn-online-invite[data-copied='true'] {
+  background: #e1f3ea;
+  border-color: rgba(46, 125, 91, 0.45);
+  color: #1c5c40;
+}
+
+.online-spectator-banner {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: #eef3f8;
+  border: 1px solid rgba(43, 95, 143, 0.28);
+  color: var(--p2-dark);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.online-seat-status[data-status='online'] {
+  background: #e1f3ea;
+  color: #1c5c40;
+  border: 1px solid rgba(46, 125, 91, 0.34);
+}
+
+.online-seat-status[data-status='offline'] {
+  background: #fde5e0;
+  color: #a62b17;
+  border: 1px solid rgba(200, 75, 49, 0.45);
+}
+
+.online-seat-status[data-status='ai'] {
+  background: var(--surface-subtle);
+  color: var(--ink-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-substitute-ai {
+  width: 100%;
+  min-height: 28px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(196, 131, 32, 0.45);
+  background: #fdf0df;
+  color: #824b11;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background var(--dur-fast) ease;
+}
+
+.btn-substitute-ai:not(:disabled):hover {
+  background: #fae4c7;
+}
+
+.btn-claim-host {
+  background: linear-gradient(135deg, #d79e3b, var(--brass-accent-strong));
+  border-color: #7c5312;
+  color: var(--ink-on-dark);
+}
+
+.btn-claim-host:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+.btn-action[data-online-disabled='true'] {
+  opacity: 0.34;
+  background: var(--surface-subtle);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------
+   5. Mobile Adjustments (<= 640px)
+   ---------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .lobby-nav {
+    gap: 4px;
+  }
+
+  .lobby-nav-tabs {
+    max-width: none;
+    flex: 2 1 0;
+  }
+
+  .lobby-nav-tab,
+  .lobby-nav-history {
+    padding: 6px 8px;
+    font-size: 0.78rem;
+  }
+
+  .online-room-screen {
+    padding:
+      max(10px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+  }
+
+  .online-room-shell {
+    padding: 14px 12px;
+    border-radius: var(--radius-lg);
+  }
+
+  .btn-online-invite {
+    height: 26px;
+    padding: 0 7px;
+    font-size: 0.7rem;
+  }
+
+  .online-connection-badge {
+    padding: 1px 6px;
+    font-size: 0.68rem;
+  }
+}

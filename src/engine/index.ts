@@ -1,6 +1,14 @@
-export { BOARD_SIZE, COL_LABELS, DEFAULT_PLAYER_NAMES, ROW_LABELS } from './types';
+export {
+  BOARD_SIZE,
+  COL_LABELS,
+  DEFAULT_PLAYER_NAMES,
+  DEFAULT_PLAYER_NAMES_BY_LOCALE,
+  ROW_LABELS,
+} from './types.js';
 export type {
+  ActionEvent,
   AIDifficulty,
+  AtomicTurnAction,
   BoardComponentResult,
   CellPos,
   ComponentKind,
@@ -21,6 +29,7 @@ export type {
   PieceKind,
   PieceValidMove,
   PlacedWall,
+  PlacementActionEvent,
   PlayerColorToken,
   PlayerConfig,
   PlayerScoreSummary,
@@ -32,7 +41,9 @@ export type {
   TerritoryAnalysis,
   TerritoryComponent,
   TimerSeconds,
+  TurnActionEvent,
   TurnSubState,
+  TurnTimeoutResolution,
   ValidMoveOption,
   WallEdge,
   WallGo2BreakChoice,
@@ -40,7 +51,7 @@ export type {
   WallGo2PieceKind,
   WallKey,
   WallOrientation,
-} from './types';
+} from './types.js';
 
 export {
   computeRound2Qualification,
@@ -48,7 +59,7 @@ export {
   createInitialGameState,
   createPrisonMatchRound2State,
   getRemainingPlacementKinds,
-} from './setup';
+} from './setup.js';
 
 export {
   cellToCoordLabel,
@@ -73,7 +84,7 @@ export {
   pieceHasAnyLegalAction,
   wallKey,
   withoutWall,
-} from './moves';
+} from './moves.js';
 
 export {
   analyzeBoardComponents,
@@ -81,9 +92,10 @@ export {
   checkGameEnd,
   computeRankings,
   shouldAutoSkipPlayer,
-} from './territory';
+} from './territory.js';
 
 export {
+  applyAtomicTurnAction,
   breakWallAt,
   canCancelTurnMove,
   canSmartRedo,
@@ -99,13 +111,16 @@ export {
   handleTurnTimeout,
   isDirtyIntraTurn,
   movePiece,
+  normalizeTurnForTakeover,
   placeInitialPiece,
   placeWall,
+  resolveTurnTimeout,
   selectPiece,
   selectWallGo2BreakDestination,
+  setPlayerControllerInGame,
   setSelectedPlacementKind,
   smartRedo,
   smartUndo,
   toggleWallBreak,
   updatePresentTransient,
-} from './actions';
+} from './actions.js';

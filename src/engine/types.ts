@@ -6,6 +6,14 @@ export const ROW_LABELS = ['1', '2', '3', '4', '5', '6', '7'] as const;
 
 export const DEFAULT_PLAYER_NAMES = ['플레이어 1', '플레이어 2', '플레이어 3'] as const;
 
+export const DEFAULT_PLAYER_NAMES_BY_LOCALE: Record<
+  'ko' | 'en',
+  readonly [string, string, string]
+> = {
+  ko: DEFAULT_PLAYER_NAMES,
+  en: ['Player 1', 'Player 2', 'Player 3'] as const,
+};
+
 export type RuleVariant = 'wallgo1' | 'wallgo2';
 
 export type GameFormat = '3p' | '2p';
@@ -151,6 +159,44 @@ export interface Round2Qualification {
   isFirstPlayerOrderTied: boolean;
 }
 
+export interface PlacementActionEvent {
+  kind: 'placement';
+  playerId: number;
+  actorIsAI: boolean;
+  pieceId: string;
+  pieceKind: PieceKind;
+  pos: CellPos;
+  timedOut: boolean;
+  skippedPlayerIds: number[];
+}
+
+export interface TurnActionEvent {
+  kind: 'turn';
+  turnNumber: number;
+  playerId: number;
+  actorIsAI: boolean;
+  pieceId: string;
+  pieceKind: PieceKind;
+  from: CellPos;
+  to: CellPos;
+  isStay: boolean;
+  usedWallBreak: boolean;
+  brokenWall: PlacedWall | null;
+  placedWall: WallEdge;
+  timedOut: boolean;
+  skippedPlayerIds: number[];
+}
+
+export type ActionEvent = PlacementActionEvent | TurnActionEvent;
+
+export interface AtomicTurnAction {
+  pieceId: string;
+  useWallBreak: boolean;
+  breakWall: WallEdge | null;
+  destination: CellPos;
+  placeWall: WallEdge;
+}
+
 export interface GameState {
   boardSize: 7;
   ruleVariant: RuleVariant;
@@ -169,7 +215,13 @@ export interface GameState {
   timerSeconds: TimerSeconds;
   lastSkippedPlayerIds: number[];
   lastActionSummary: string | null;
+  lastActionEvent: ActionEvent | null;
   territory: TerritoryAnalysis;
+}
+
+export interface TurnTimeoutResolution {
+  state: GameState;
+  event: ActionEvent | null;
 }
 
 export type MoveType = 'normal' | 'stay' | 'wall-break';

@@ -1,5 +1,6 @@
 import { computeRound2Qualification } from '../engine';
 import type { GameState, PlayerScoreSummary, Round2Qualification } from '../engine';
+import { useI18n } from '../i18n';
 
 export interface ResultModalProps {
   state: GameState;
@@ -7,6 +8,12 @@ export interface ResultModalProps {
   onRematch: () => void;
   onBackToLobby: () => void;
   onInspectBoard: () => void;
+  mode?: 'local' | 'online';
+  isHost?: boolean;
+  onlineActionPending?: boolean;
+  onOnlineRound2?: () => void;
+  onOnlineRematch?: () => void;
+  onOnlineReturnWaiting?: () => void;
 }
 
 function sortScores(scores: readonly PlayerScoreSummary[]): PlayerScoreSummary[] {
@@ -25,7 +32,14 @@ export function ResultModal({
   onRematch,
   onBackToLobby,
   onInspectBoard,
+  mode = 'local',
+  isHost = false,
+  onlineActionPending = false,
+  onOnlineRound2,
+  onOnlineRematch,
+  onOnlineReturnWaiting,
 }: ResultModalProps) {
+  const { t } = useI18n();
   const orderedScores = sortScores(state.territory.scores);
   const rankCounts = new Map<number, number>();
   for (const s of orderedScores) {
@@ -43,15 +57,15 @@ export function ResultModal({
 
   const titleText =
     state.format === '3p'
-      ? '감옥매치 1라운드 종료'
+      ? t.result.titleRound1
       : state.isPrisonMatchRound2
-        ? '감옥매치 2라운드 종료'
-        : '게임 종료';
+        ? t.result.titleRound2
+        : t.result.titleGameOver;
 
   const endReasonText =
     state.territory.endReason === 'deadlock'
-      ? '모든 영역 분리 또는 이동 불가(교착)로 경기가 종료되었습니다.'
-      : '모든 플레이어의 영역이 벽으로 완전히 분리되었습니다.';
+      ? t.result.endReasonDeadlock
+      : t.result.endReasonSeparated;
 
   const firstR2Player = qualification
     ? state.players.find((p) => p.id === qualification.defaultFirstPlayerId)
@@ -59,6 +73,18 @@ export function ResultModal({
   const secondR2Player = qualification
     ? state.players.find((p) => p.id === qualification.defaultSecondPlayerId)
     : undefined;
+
+  const round2ReasonSuffix = qualification
+    ? qualification.status === 'three_way_tie'
+      ? t.result.round2ReasonThreeWayTie
+      : qualification.status === 'tied_for_first'
+        ? t.result.round2ReasonTiedForFirst
+        : qualification.isFirstPlayerOrderTied
+          ? t.result.round2ReasonOrderTied
+          : t.result.round2ReasonClear
+    : '';
+
+  const isOnline = mode === 'online';
 
   return (
     <div className="modal-backdrop">
@@ -83,7 +109,7 @@ export function ResultModal({
             {orderedScores.map((score) => {
               const player = state.players.find((p) => p.id === score.playerId);
               const isTiedRank = (rankCounts.get(score.rank) ?? 0) > 1;
-              const rankText = isTiedRank ? `공동 ${score.rank}위` : `${score.rank}위`;
+              const rankText = t.result.rank(score.rank, isTiedRank);
               const isAdvancing = advancingIds.includes(score.playerId);
               const isSurvivor =
                 qualification !== null && qualification.survivorId === score.playerId;
@@ -103,22 +129,26 @@ export function ResultModal({
                     <span className="result-rank-badge">{rankText}</span>
                     <span className="player-swatch" aria-hidden="true" />
                     <span className="result-player-name">
-                      {player?.name ?? `플레이어 ${score.playerId + 1}`}
+                      {player?.name ?? t.common.defaultPlayerName(score.playerId)}
                     </span>
                     {state.format === '3p' && isSurvivor && (
-                      <span className="result-status-tag result-status-tag--survivor">생존</span>
+                      <span className="result-status-tag result-status-tag--survivor">
+                        {t.result.statusSurvivor}
+                      </span>
                     )}
                     {state.format === '3p' && isAdvancing && (
                       <span className="result-status-tag result-status-tag--round2">
-                        2라운드 진출
+                        {t.result.statusRound2}
                       </span>
                     )}
                   </div>
 
                   <div className="result-rank-right">
-                    <span className="result-score-total">{score.totalTerritory}칸</span>
+                    <span className="result-score-total">
+                      {t.result.cellsCount(score.totalTerritory)}
+                    </span>
                     <span className="result-score-sub">
-                      최대 단일 {score.largestSingleTerritory}칸
+                      {t.result.largestSingle(score.largestSingleTerritory)}
                     </span>
                   </div>
                 </div>
@@ -126,7 +156,7 @@ export function ResultModal({
             })}
           </div>
 
-          <p className="result-caption">동점 시 최대 단일 영역이 더 넓은 플레이어가 우선합니다.</p>
+          <p className="result-caption">{t.result.tiebreakerCaption}</p>
 
           {state.format === '3p' && qualification && firstR2Player && secondR2Player && (
             <div
@@ -136,62 +166,118 @@ export function ResultModal({
               data-first-player-id={qualification.defaultFirstPlayerId}
             >
               <p className="round2-preview-title">
-                2라운드 1:1 감옥매치 대진 · {firstR2Player.name} vs {secondR2Player.name}
+                {t.result.round2PreviewTitle(firstR2Player.name, secondR2Player.name)}
               </p>
               <p className="round2-preview-detail">
-                선공: <strong>{firstR2Player.name}</strong>
-                {qualification.status === 'three_way_tie'
-                  ? ' (3인 완전 동률 — 기본 대진 적용, 재경기로 다시 겨룰 수도 있습니다)'
-                  : qualification.status === 'tied_for_first'
-                    ? ' (공동 1위 동률 — 기본 2라운드 대진 적용)'
-                    : qualification.isFirstPlayerOrderTied
-                      ? ' (하위 2명 동률 — 앞 순번 선공)'
-                      : ' (1라운드 영역 우위 선공)'}
+                {t.result.round2FirstTurnPrefix}
+                <strong>{firstR2Player.name}</strong>
+                {round2ReasonSuffix}
               </p>
-              <p className="round2-preview-rule">
-                말 4개 · 2개 대각선 고정 · 벽 부수기 없음
-              </p>
+              <p className="round2-preview-rule">{t.result.round2PreviewRule}</p>
             </div>
           )}
         </div>
 
         <footer className="modal-footer">
-          {state.format === '3p' && qualification && (
-            <button
-              type="button"
-              className="btn-modal-cta"
-              data-testid="start-round2-button"
-              onClick={onStartRound2}
-            >
-              감옥매치 2라운드 (1:1) 시작
-            </button>
+          {isOnline ? (
+            <>
+              {isHost && state.format === '3p' && qualification && onOnlineRound2 && (
+                <button
+                  type="button"
+                  className="btn-modal-cta"
+                  data-testid="online-round2-button"
+                  disabled={onlineActionPending}
+                  onClick={onOnlineRound2}
+                >
+                  {t.result.startRound2Button}
+                </button>
+              )}
+              {!isHost && (
+                <p className="result-online-wait" role="status">
+                  {t.online.waitingForHostResult}
+                </p>
+              )}
+              <div className="modal-secondary-actions modal-secondary-actions--online">
+                {isHost && onOnlineRematch && (
+                  <button
+                    type="button"
+                    className="btn-action"
+                    data-testid="online-rematch-button"
+                    disabled={onlineActionPending}
+                    onClick={onOnlineRematch}
+                  >
+                    {t.result.rematchButton}
+                  </button>
+                )}
+                {isHost && onOnlineReturnWaiting && (
+                  <button
+                    type="button"
+                    className="btn-action"
+                    data-testid="online-return-waiting-button"
+                    disabled={onlineActionPending}
+                    onClick={onOnlineReturnWaiting}
+                  >
+                    {t.online.returnWaitingButton}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn-action"
+                  data-testid="inspect-board-button"
+                  onClick={onInspectBoard}
+                >
+                  {t.result.inspectBoardButton}
+                </button>
+                <button
+                  type="button"
+                  className="btn-action"
+                  data-testid="result-lobby-button"
+                  onClick={onBackToLobby}
+                >
+                  {t.result.backToLobbyButton}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {state.format === '3p' && qualification && (
+                <button
+                  type="button"
+                  className="btn-modal-cta"
+                  data-testid="start-round2-button"
+                  onClick={onStartRound2}
+                >
+                  {t.result.startRound2Button}
+                </button>
+              )}
+              <div className="modal-secondary-actions">
+                <button
+                  type="button"
+                  className="btn-action"
+                  data-testid="rematch-button"
+                  onClick={onRematch}
+                >
+                  {t.result.rematchButton}
+                </button>
+                <button
+                  type="button"
+                  className="btn-action"
+                  data-testid="inspect-board-button"
+                  onClick={onInspectBoard}
+                >
+                  {t.result.inspectBoardButton}
+                </button>
+                <button
+                  type="button"
+                  className="btn-action"
+                  data-testid="result-lobby-button"
+                  onClick={onBackToLobby}
+                >
+                  {t.result.backToLobbyButton}
+                </button>
+              </div>
+            </>
           )}
-          <div className="modal-secondary-actions">
-            <button
-              type="button"
-              className="btn-action"
-              data-testid="rematch-button"
-              onClick={onRematch}
-            >
-              다시 하기
-            </button>
-            <button
-              type="button"
-              className="btn-action"
-              data-testid="inspect-board-button"
-              onClick={onInspectBoard}
-            >
-              보드 보기
-            </button>
-            <button
-              type="button"
-              className="btn-action"
-              data-testid="result-lobby-button"
-              onClick={onBackToLobby}
-            >
-              로비로
-            </button>
-          </div>
         </footer>
       </div>
     </div>

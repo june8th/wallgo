@@ -1,4 +1,4 @@
-import { BOARD_SIZE } from './types';
+import { BOARD_SIZE } from './types.js';
 import type {
   BoardComponentResult,
   CellPos,
@@ -12,7 +12,7 @@ import type {
   TerritoryAnalysis,
   TerritoryComponent,
   WallKey,
-} from './types';
+} from './types.js';
 import {
   CARDINAL_DIRS,
   compareCellPos,
@@ -21,7 +21,7 @@ import {
   hasWall,
   isInBounds,
   pieceHasAnyLegalAction,
-} from './moves';
+} from './moves.js';
 
 export function analyzeBoardComponents(
   walls: Readonly<Record<WallKey, PlacedWall>>,

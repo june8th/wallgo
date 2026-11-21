@@ -10,11 +10,28 @@ import type {
   GameState,
   InteractiveWallSlot,
   Piece,
+  PlacedWall,
   PlayerColorToken,
   TerritoryComponent,
   ValidMoveOption,
   WallEdge,
 } from '../engine';
+import { useI18n } from '../i18n';
+
+export interface ReplayBoardHighlight {
+  /** Starting cell of a moved piece (null on placement or 0-step stay) */
+  origin?: CellPos | null;
+  /** Destination cell of a moved piece OR newly placed cell */
+  dest?: CellPos | null;
+  /** True iff Wall Go I 0-step stay */
+  isStay?: boolean;
+  /** Original PlacedWall destroyed by Wall Break on this step */
+  brokenWall?: PlacedWall | null;
+  /** True iff brokenWall and placedWall occupy the exact same edge (E10 resealing) */
+  isResealed?: boolean;
+  /** Wall placed at the end of this step */
+  placedWall?: WallEdge | null;
+}
 
 export interface BoardProps {
   state: GameState;
@@ -23,6 +40,7 @@ export interface BoardProps {
   pendingBreakTarget: CellPos | null;
   isInteractive: boolean;
   isPaused: boolean;
+  replayHighlight?: ReplayBoardHighlight | null;
   onCellClick: (row: number, col: number) => void;
   onWallClick: (edge: WallEdge) => void;
 }
@@ -77,9 +95,12 @@ export function Board({
   pendingBreakTarget,
   isInteractive,
   isPaused,
+  replayHighlight = null,
   onCellClick,
   onWallClick,
 }: BoardProps) {
+  const { t } = useI18n();
+
   const playerColorById = new Map<number, PlayerColorToken>();
   for (const player of state.players) {
     playerColorById.set(player.id, player.colorToken);
@@ -111,7 +132,16 @@ export function Board({
     componentById.set(comp.id, comp);
   }
 
-  const lastWallKey = state.lastPlacedWall ? wallKey(state.lastPlacedWall) : null;
+  const lastWallKey = replayHighlight?.placedWall
+    ? wallKey(replayHighlight.placedWall)
+    : state.lastPlacedWall
+      ? wallKey(state.lastPlacedWall)
+      : null;
+
+  const brokenWallKey = replayHighlight?.brokenWall
+    ? wallKey(replayHighlight.brokenWall)
+    : null;
+  const isResealedStep = Boolean(replayHighlight?.isResealed);
 
   const cells: React.ReactNode[] = [];
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -149,33 +179,52 @@ export function Board({
         pendingBreakTarget.row === r &&
         pendingBreakTarget.col === c;
 
+      let replayRole: 'origin' | 'dest' | 'stay' | 'none' = 'none';
+      if (replayHighlight) {
+        if (
+          replayHighlight.dest &&
+          replayHighlight.dest.row === r &&
+          replayHighlight.dest.col === c
+        ) {
+          replayRole = replayHighlight.isStay ? 'stay' : 'dest';
+        } else if (
+          replayHighlight.origin &&
+          replayHighlight.origin.row === r &&
+          replayHighlight.origin.col === c
+        ) {
+          replayRole = 'origin';
+        }
+      }
+
       const pieceColorToken =
         piece !== undefined ? (playerColorById.get(piece.ownerId) ?? 'p1') : undefined;
       const territoryColorToken =
         securedOwner !== null ? (playerColorById.get(securedOwner) ?? 'p1') : undefined;
 
-      const ariaParts = [`${coord} 칸`];
+      const ariaParts = [t.board.cellLabel(coord)];
       if (piece) {
         const ownerName = state.players[piece.ownerId]?.name ?? `${piece.ownerId + 1}P`;
-        const kindLabel =
-          piece.kind === 'square' ? '사각 말' : piece.kind === 'round' ? '원형 말' : '말';
+        const kindLabel = t.common.pieceKindFull[piece.kind];
         ariaParts.push(`${ownerName} ${kindLabel}`);
       }
       if (moveType === 'placement') {
-        ariaParts.push('배치 가능');
+        ariaParts.push(t.board.movePlacementAria);
       } else if (moveType === 'stay') {
-        ariaParts.push('제자리 유지 가능');
+        ariaParts.push(t.board.moveStayAria);
       } else if (moveType === 'normal') {
-        ariaParts.push('이동 가능');
+        ariaParts.push(t.board.moveNormalAria);
       } else if (moveType === 'wall-break') {
-        ariaParts.push('벽 부수기 이동 가능');
+        ariaParts.push(t.board.moveWallBreakAria);
       }
+
+      const cellClassName =
+        replayRole !== 'none' ? `board-cell cell-replay-${replayRole}` : 'board-cell';
 
       cells.push(
         <button
           key={`cell-${r}-${c}`}
           type="button"
-          className="board-cell"
+          className={cellClassName}
           data-testid={`cell-${r}-${c}`}
           data-row={r}
           data-col={c}
@@ -190,6 +239,7 @@ export function Board({
           data-territory-color={territoryColorToken ?? 'none'}
           data-territory-size={territorySize}
           data-pending-target={isPendingTarget ? 'true' : 'false'}
+          data-replay-role={replayRole !== 'none' ? replayRole : undefined}
           aria-label={ariaParts.join(', ')}
           style={{
             gridRow: 2 * r + 1,
@@ -214,9 +264,9 @@ export function Board({
               <PieceGlyph kind={piece.kind} />
             </span>
           )}
-          {moveType === 'stay' && (
+          {(moveType === 'stay' || replayRole === 'stay') && (
             <span className="cell-stay-tag" aria-hidden="true">
-              제자리
+              {t.board.stayTag}
             </span>
           )}
           {isAnchor && securedOwner !== null && comp && (
@@ -247,6 +297,8 @@ export function Board({
       const placed = state.walls[key];
       const interactive = interactiveWallByKey.get(key);
       const isLast = lastWallKey === key;
+      const isBrokenEdge = brokenWallKey === key;
+      const isResealedEdge = isBrokenEdge && isResealedStep && placed !== undefined;
 
       const c1 = cellToCoordLabel({ row: r, col: c });
       const c2 = cellToCoordLabel({ row: r + 1, col: c });
@@ -262,15 +314,41 @@ export function Board({
         >
           {placed && (
             <div
-              className="placed-wall"
+              className={
+                isResealedEdge ? 'placed-wall wall-replay-resealed' : 'placed-wall'
+              }
               data-testid={`placed-wall-h-${r}-${c}`}
               data-orientation="h"
               data-row={r}
               data-col={c}
               data-owner={placed.ownerId}
               data-last-wall={isLast ? 'true' : 'false'}
+              data-replay-resealed={isResealedEdge ? 'true' : undefined}
               data-player-color={playerColorById.get(placed.ownerId) ?? 'p1'}
             />
+          )}
+          {isResealedEdge && (
+            <div
+              className="wall-replay-resealed-badge"
+              data-orientation="h"
+              aria-hidden="true"
+            >
+              <HammerIcon />
+            </div>
+          )}
+          {isBrokenEdge && !placed && replayHighlight?.brokenWall && (
+            <div
+              className="wall-replay-broken"
+              data-orientation="h"
+              data-player-color={
+                playerColorById.get(replayHighlight.brokenWall.ownerId) ?? 'p1'
+              }
+              aria-hidden="true"
+            >
+              <span className="wall-replay-broken-badge">
+                <HammerIcon />
+              </span>
+            </div>
           )}
           {interactive && (
             <button
@@ -283,7 +361,12 @@ export function Board({
               data-wall-state={interactive.state}
               data-wall-interactive="true"
               data-player-color={activePlayerColor}
-              aria-label={`${c1}-${c2} 가로 벽 ${interactive.state === 'placeable' ? '설치' : '부수기'}`}
+              aria-label={t.board.wallAria(
+                c1,
+                c2,
+                'h',
+                interactive.state === 'placeable',
+              )}
               onClick={() => onWallClick(edge)}
             >
               <span className="wall-slot-beam" aria-hidden="true" />
@@ -307,6 +390,8 @@ export function Board({
       const placed = state.walls[key];
       const interactive = interactiveWallByKey.get(key);
       const isLast = lastWallKey === key;
+      const isBrokenEdge = brokenWallKey === key;
+      const isResealedEdge = isBrokenEdge && isResealedStep && placed !== undefined;
 
       const c1 = cellToCoordLabel({ row: r, col: c });
       const c2 = cellToCoordLabel({ row: r, col: c + 1 });
@@ -322,15 +407,41 @@ export function Board({
         >
           {placed && (
             <div
-              className="placed-wall"
+              className={
+                isResealedEdge ? 'placed-wall wall-replay-resealed' : 'placed-wall'
+              }
               data-testid={`placed-wall-v-${r}-${c}`}
               data-orientation="v"
               data-row={r}
               data-col={c}
               data-owner={placed.ownerId}
               data-last-wall={isLast ? 'true' : 'false'}
+              data-replay-resealed={isResealedEdge ? 'true' : undefined}
               data-player-color={playerColorById.get(placed.ownerId) ?? 'p1'}
             />
+          )}
+          {isResealedEdge && (
+            <div
+              className="wall-replay-resealed-badge"
+              data-orientation="v"
+              aria-hidden="true"
+            >
+              <HammerIcon />
+            </div>
+          )}
+          {isBrokenEdge && !placed && replayHighlight?.brokenWall && (
+            <div
+              className="wall-replay-broken"
+              data-orientation="v"
+              data-player-color={
+                playerColorById.get(replayHighlight.brokenWall.ownerId) ?? 'p1'
+              }
+              aria-hidden="true"
+            >
+              <span className="wall-replay-broken-badge">
+                <HammerIcon />
+              </span>
+            </div>
           )}
           {interactive && (
             <button
@@ -343,7 +454,12 @@ export function Board({
               data-wall-state={interactive.state}
               data-wall-interactive="true"
               data-player-color={activePlayerColor}
-              aria-label={`${c1}-${c2} 세로 벽 ${interactive.state === 'placeable' ? '설치' : '부수기'}`}
+              aria-label={t.board.wallAria(
+                c1,
+                c2,
+                'v',
+                interactive.state === 'placeable',
+              )}
               onClick={() => onWallClick(edge)}
             >
               <span className="wall-slot-beam" aria-hidden="true" />
@@ -365,7 +481,7 @@ export function Board({
         className="board-frame"
         data-testid="board-frame"
         role="region"
-        aria-label="벽바둑 게임 보드"
+        aria-label={t.board.regionAria}
       >
         <div className="board-coords-top" aria-hidden="true">
           {COL_LABELS.map((label, c) => (
@@ -394,13 +510,13 @@ export function Board({
           className="board-grid"
           data-testid="board-grid"
           role="grid"
-          aria-label="7x7 벽바둑 판"
+          aria-label={t.board.gridAria}
         >
           {cells}
           {wallTracks}
           {isPaused && (
             <div className="board-paused-shield" role="status">
-              <span className="board-paused-pill">일시정지됨 · 재개 버튼을 눌러 계속하세요</span>
+              <span className="board-paused-pill">{t.board.pausedOverlay}</span>
             </div>
           )}
         </div>

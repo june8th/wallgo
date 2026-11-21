@@ -1,3 +1,3 @@
-export type { BotPlacementAction, BotTurnAction } from './bot';
-export { applyBotTurnAction, chooseAiPlacement, chooseAiTurn } from './bot';
-export { evaluatePosition } from './evaluate';
+export type { BotPlacementAction, BotTurnAction } from './bot.js';
+export { applyBotTurnAction, chooseAiPlacement, chooseAiTurn } from './bot.js';
+export { evaluatePosition } from './evaluate.js';

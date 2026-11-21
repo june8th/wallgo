@@ -138,6 +138,11 @@ textarea {
   -webkit-user-select: text;
 }
 
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
 button {
   font-family: inherit;
   color: inherit;

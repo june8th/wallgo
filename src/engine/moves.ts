@@ -1,4 +1,4 @@
-import { BOARD_SIZE, COL_LABELS, ROW_LABELS } from './types';
+import { BOARD_SIZE, COL_LABELS, ROW_LABELS } from './types.js';
 import type {
   CellPos,
   Direction,
@@ -9,7 +9,7 @@ import type {
   WallEdge,
   WallGo2BreakTarget,
   WallKey,
-} from './types';
+} from './types.js';
 
 export const CARDINAL_DIRS: readonly { dir: Direction; dr: number; dc: number }[] = [
   { dir: 'N', dr: -1, dc: 0 },

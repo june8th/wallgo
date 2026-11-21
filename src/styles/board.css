@@ -477,3 +477,168 @@
   box-shadow: var(--shadow-elevated);
   border: 1.5px solid var(--border-medium);
 }
+
+/* ----------------------------------------------------------------------------
+   Replay Viewer Step Highlights (Origin, Destination, Stay, Broken/Resealed Wall)
+   ---------------------------------------------------------------------------- */
+
+.board-cell.cell-replay-origin {
+  box-shadow:
+    inset 0 0 0 2.5px rgba(106, 70, 43, 0.58),
+    inset 0 0 12px rgba(106, 70, 43, 0.14);
+}
+
+.board-cell.cell-replay-origin::before {
+  content: '';
+  position: absolute;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+  border: 2px dashed rgba(106, 70, 43, 0.65);
+  background: rgba(106, 70, 43, 0.12);
+  pointer-events: none;
+}
+
+.board-cell.cell-replay-dest {
+  z-index: 4;
+  box-shadow:
+    inset 0 0 0 3px var(--brass-accent),
+    inset 0 0 16px rgba(217, 155, 38, 0.28),
+    0 0 0 1.5px rgba(201, 151, 62, 0.38);
+}
+
+.board-cell.cell-replay-stay {
+  z-index: 4;
+  box-shadow:
+    inset 0 0 0 3px var(--move-stay-ring),
+    inset 0 0 0 5.5px rgba(217, 155, 38, 0.45),
+    inset 0 0 14px var(--move-stay-fill);
+}
+
+.wall-replay-broken {
+  position: absolute;
+  z-index: 21;
+  pointer-events: none;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(217, 72, 42, 0.26) 0px,
+    rgba(217, 72, 42, 0.26) 4px,
+    rgba(255, 243, 230, 0.72) 4px,
+    rgba(255, 243, 230, 0.72) 8px
+  );
+  border: 1.5px dashed #c84b31;
+  box-shadow: 0 0 0 2px rgba(217, 72, 42, 0.22);
+}
+
+.wall-replay-broken[data-orientation='h'] {
+  top: -1px;
+  bottom: -1px;
+  left: -2px;
+  right: -2px;
+}
+
+.wall-replay-broken[data-orientation='v'] {
+  left: -1px;
+  right: -1px;
+  top: -2px;
+  bottom: -2px;
+}
+
+.wall-replay-broken-badge,
+.wall-replay-resealed-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 24;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #b92d14;
+  color: #fffdf7;
+  border: 1.5px solid #fff3e6;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+}
+
+/* E10 same-edge break + immediate reseal in one turn */
+.placed-wall.wall-replay-resealed {
+  z-index: 23;
+  box-shadow:
+    0 0 0 2px #f6d58e,
+    0 0 0 4px rgba(217, 72, 42, 0.65),
+    0 3px 10px rgba(217, 72, 42, 0.48),
+    inset 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+
+/* ----------------------------------------------------------------------------
+   Mobile Tight Frame & Non-Overlapping 40px x 40px Wall Hit Targets
+   ---------------------------------------------------------------------------- */
+
+@media (max-width: 640px), (max-width: 767px) and (max-height: 700px) {
+  .board-frame {
+    --frame-pad: 14px;
+    --groove: 6px;
+    border-radius: 12px;
+  }
+
+  .coord-label {
+    font-size: 9px;
+  }
+
+  .board-grid {
+    padding: 3px;
+    border-radius: 7px;
+  }
+
+  .territory-badge {
+    top: 2px;
+    right: 2px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    font-size: 9px;
+  }
+
+  .cell-stay-tag {
+    bottom: 1px;
+    padding: 0 3px;
+    font-size: 8px;
+  }
+
+  .wall-hit-target[data-orientation='h'] {
+    width: max(40px, 68%);
+    height: 40px;
+  }
+
+  .wall-hit-target[data-orientation='v'] {
+    width: 40px;
+    height: max(40px, 68%);
+  }
+
+  .wall-hit-target[data-orientation='h'] .wall-slot-beam {
+    height: max(8px, var(--groove));
+  }
+
+  .wall-hit-target[data-orientation='v'] .wall-slot-beam {
+    width: max(8px, var(--groove));
+  }
+
+  .wall-break-badge {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Short-Height Mobile & Rotated Phone Safeguard (e.g. 375x667, 667x375, 767x700):
+   Scoped to .game-screen > .board-stage (specificity 0,2,0) strictly after base .board-stage
+   so container-type: size never collapses in auto grid rows and .replay-board-wrap is unaffected. */
+@media (max-width: 767px) and (max-height: 700px) {
+  .game-screen > .board-stage {
+    height: min(calc(100vw - 16px), 360px);
+    min-height: min(calc(100vw - 16px), 360px);
+  }
+}

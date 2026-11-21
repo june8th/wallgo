@@ -61,6 +61,28 @@ export default defineConfig({
         isMobile: false,
       },
     },
+    {
+      name: 'desktop-chromium',
+      testMatch: /v2-.*\.spec\.ts/,
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 1440, height: 900 },
+        hasTouch: false,
+        isMobile: false,
+        locale: 'ko-KR',
+      },
+    },
+    {
+      name: 'mobile-chromium',
+      testMatch: /v2-.*\.spec\.ts/,
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+        locale: 'ko-KR',
+      },
+    },
   ],
   webServer: {
     command: 'pnpm preview --host 127.0.0.1 --port 4173 --strictPort',

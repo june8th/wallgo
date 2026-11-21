@@ -55,8 +55,27 @@
   }
 }
 
+/* Desktop Web (>= 1200px): Centered max-width shell, zero page scroll */
+@media (min-aspect-ratio: 6/5) and (min-width: 1200px) {
+  .game-screen {
+    max-width: 1380px;
+    margin-inline: auto;
+    --panel-width: clamp(340px, 28vw, 400px);
+    gap: 22px;
+    padding:
+      max(18px, env(safe-area-inset-top))
+      max(22px, env(safe-area-inset-right))
+      max(18px, env(safe-area-inset-bottom))
+      max(22px, env(safe-area-inset-left));
+  }
+
+  .side-panel {
+    gap: 12px;
+  }
+}
+
 /* ----------------------------------------------------------------------------
-   1. Top Status Bar (game-topbar)
+   1. Top Status Bar (game-topbar) & Global Language Toggle
    ---------------------------------------------------------------------------- */
 
 .game-topbar {
@@ -64,7 +83,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  row-gap: 4px;
   min-height: 40px;
   padding: 6px 12px;
   background: var(--surface-card);
@@ -79,7 +100,69 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.topbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.btn-lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 36px;
+  min-width: 52px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-medium);
+  background: var(--surface-card-elevated);
+  color: var(--ink-muted);
+  font-family: var(--font-numeric);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-card);
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+}
+
+.btn-lang-toggle:hover {
+  background: var(--surface-subtle);
+  border-color: var(--wood-mid);
+}
+
+.btn-lang-toggle--compact {
+  min-height: 30px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  box-shadow: none;
+}
+
+.lang-opt {
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.lang-opt[data-active='true'] {
+  color: var(--wood-dark);
+  font-weight: 800;
+}
+
+.lang-sep {
+  color: var(--border-strong);
+  font-weight: 500;
 }
 
 .topbar-badge {
@@ -884,6 +967,22 @@
   gap: 8px;
 }
 
+.modal-secondary-actions--online {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.result-online-wait {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--ink-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* Rules Modal Tabs & Content */
 .rules-tabs {
   display: grid;
@@ -955,4 +1054,229 @@
 .rules-diagram-desc {
   font-size: 0.75rem;
   color: var(--ink-secondary);
+}
+
+/* ----------------------------------------------------------------------------
+   7. Tier 3 Mobile Smartphones (<= 640px) & Short-Height Safeguard (<= 700px)
+      Placed AFTER portrait @media (max-aspect-ratio: 6/5) so iPad 768px-1199px
+      keeps exact v1 touch heights (48px portrait / 44px landscape).
+   ---------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .game-screen {
+    padding:
+      max(6px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(6px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+
+  .game-topbar {
+    min-height: 36px;
+    padding: 4px 8px;
+    column-gap: 6px;
+  }
+
+  .topbar-badge {
+    padding: 2px 7px;
+    font-size: 0.72rem;
+  }
+
+  .turn-timer {
+    min-width: 48px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+  }
+
+  .btn-timer-pause {
+    height: 26px;
+    padding: 0 7px;
+    font-size: 0.72rem;
+  }
+
+  .btn-lang-toggle--compact {
+    min-height: 26px;
+    height: 26px;
+    min-width: 46px;
+    padding: 0 7px;
+    font-size: 0.7rem;
+  }
+
+  /* Compact 1-line horizontal score strip */
+  .score-board {
+    gap: 5px;
+  }
+
+  .player-card {
+    padding: 5px 7px;
+    gap: 3px;
+    border-radius: var(--radius-sm);
+  }
+
+  .player-card-header {
+    gap: 4px;
+  }
+
+  .player-identity {
+    gap: 4px;
+  }
+
+  .player-swatch {
+    width: 10px;
+    height: 10px;
+  }
+
+  .player-name {
+    font-size: 0.75rem;
+  }
+
+  .player-pill {
+    padding: 1px 4px;
+    font-size: 0.625rem;
+  }
+
+  .player-card-metrics {
+    gap: 4px;
+  }
+
+  .player-score-group {
+    gap: 4px;
+  }
+
+  .player-score-value {
+    font-size: 0.92rem;
+  }
+
+  .player-largest-value {
+    font-size: 0.66rem;
+  }
+
+  .player-wallbreak-pill {
+    padding: 1px 5px;
+    font-size: 0.64rem;
+  }
+
+  /* Compact Turn Guidance Banner */
+  .turn-banner {
+    padding: 7px 10px 7px 12px;
+    gap: 6px;
+    border-left-width: 4px;
+  }
+
+  .turn-banner-text {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .btn-piece-kind {
+    min-height: 32px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+
+  /* 2-Row Mobile Action Dock (zero horizontal overflow on 375px+) */
+  .action-dock {
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+  }
+
+  .action-turn-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 5px;
+    flex: none;
+  }
+
+  .action-utility-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    flex: none;
+  }
+
+  .btn-action {
+    min-height: 40px;
+    padding: 5px 4px;
+    font-size: 0.76rem;
+  }
+
+  .btn-action--subtle {
+    font-size: 0.72rem;
+  }
+
+  /* Mobile Modals */
+  .modal-backdrop {
+    padding: 10px;
+  }
+
+  .modal-card {
+    max-height: min(92dvh, 640px);
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-header {
+    padding: 12px 14px;
+  }
+
+  .modal-title {
+    font-size: 1.05rem;
+  }
+
+  .modal-body {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .modal-footer {
+    padding: 10px 14px 14px;
+  }
+
+  .result-rank-row {
+    padding: 8px 10px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .result-rank-badge {
+    min-width: 46px;
+    padding: 3px 6px;
+    font-size: 0.75rem;
+  }
+
+  .result-player-name {
+    font-size: 0.86rem;
+  }
+
+  .modal-secondary-actions {
+    gap: 6px;
+  }
+
+  .rules-tabs {
+    padding: 8px 12px 0;
+    gap: 4px;
+  }
+
+  .rules-tab {
+    min-height: 36px;
+    padding: 6px 4px;
+    font-size: 0.76rem;
+  }
+
+  .rules-list {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Short-Height Mobile & Rotated Phone Safeguard (e.g. 375x667, 667x375, 767x700):
+   Matching explicit .game-screen > .board-stage height lives in board.css (imported after layout.css) */
+@media (max-width: 767px) and (max-height: 700px) {
+  .game-screen {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    grid-template-rows: auto auto auto auto auto;
+    align-content: start;
+  }
 }

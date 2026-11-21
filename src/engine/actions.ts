@@ -1,5 +1,7 @@
-import { BOARD_SIZE } from './types';
+import { BOARD_SIZE } from './types.js';
 import type {
+  AIDifficulty,
+  AtomicTurnAction,
   CellPos,
   GameHistoryState,
   GamePhase,
@@ -9,11 +11,14 @@ import type {
   PhaseSubstate,
   PieceKind,
   PlacedWall,
+  PlacementActionEvent,
   PlayerScoreSummary,
   RngFn,
+  TurnActionEvent,
+  TurnTimeoutResolution,
   WallEdge,
   WallGo2PieceKind,
-} from './types';
+} from './types.js';
 import {
   cellToCoordLabel,
   getLegalWallPlacements,
@@ -29,9 +34,9 @@ import {
   isValidWallEdge,
   wallKey,
   withoutWall,
-} from './moves';
-import { analyzeTerritory, computeRankings, shouldAutoSkipPlayer } from './territory';
-import { createFreshTurnSubState, getRemainingPlacementKinds } from './setup';
+} from './moves.js';
+import { analyzeTerritory, computeRankings, shouldAutoSkipPlayer } from './territory.js';
+import { createFreshTurnSubState, getRemainingPlacementKinds } from './setup.js';
 
 function normalizeZero(n: number): number {
   return n === 0 ? 0 : n;
@@ -388,20 +393,35 @@ export function placeInitialPiece(
     territory,
   };
 
+  let finalState: GameState;
   if (!isDone) {
-    return stateWithTerritory;
-  }
-
-  if (territory.isGameOver) {
-    return {
+    finalState = stateWithTerritory;
+  } else if (territory.isGameOver) {
+    finalState = {
       ...stateWithTerritory,
       phase: 'game_over',
       lastSkippedPlayerIds: [],
     };
+  } else {
+    // Adversarial Turn 0 safeguard: auto-skip player 0 if boxed by pieces in corners.
+    finalState = advanceTurnWithAutoSkip(stateWithTerritory, 0, true);
   }
 
-  // Adversarial Turn 0 safeguard: auto-skip player 0 if boxed by pieces in corners.
-  return advanceTurnWithAutoSkip(stateWithTerritory, 0, true);
+  const actionEvent: PlacementActionEvent = {
+    kind: 'placement',
+    playerId: actor.id,
+    actorIsAI: actor.isAI,
+    pieceId: newPieceId,
+    pieceKind: resolvedKind,
+    pos: cloneCellPos(cleanPos),
+    timedOut: false,
+    skippedPlayerIds: finalState.lastSkippedPlayerIds.slice(),
+  };
+
+  return {
+    ...finalState,
+    lastActionEvent: actionEvent,
+  };
 }
 
 export function setSelectedPlacementKind(
@@ -745,6 +765,23 @@ export function placeWall(state: GameState, wallEdge: WallEdge): GameState {
   }
 
   const cleanEdge = cloneWallEdge(wallEdge);
+  const from =
+    state.turnSubState.originPos !== null
+      ? cloneCellPos(state.turnSubState.originPos)
+      : cloneCellPos(piece);
+  const to = cloneCellPos(piece);
+  const isStay = from.row === to.row && from.col === to.col;
+  const brokenWall: PlacedWall | null =
+    state.turnSubState.brokenWallBeforeMove !== null
+      ? {
+          orientation: state.turnSubState.brokenWallBeforeMove.orientation,
+          row: normalizeZero(state.turnSubState.brokenWallBeforeMove.row),
+          col: normalizeZero(state.turnSubState.brokenWallBeforeMove.col),
+          ownerId: state.turnSubState.brokenWallBeforeMove.ownerId,
+        }
+      : null;
+  const nextTurnNumber = state.turnNumber + 1;
+
   const placedWall: PlacedWall = {
     orientation: cleanEdge.orientation,
     row: cleanEdge.row,
@@ -760,7 +797,7 @@ export function placeWall(state: GameState, wallEdge: WallEdge): GameState {
     ...state,
     walls: nextWalls,
     lastPlacedWall: cleanEdge,
-    turnNumber: state.turnNumber + 1,
+    turnNumber: nextTurnNumber,
     phase: 'select_piece',
     turnSubState: createFreshTurnSubState('square'),
     lastSkippedPlayerIds: [],
@@ -773,16 +810,39 @@ export function placeWall(state: GameState, wallEdge: WallEdge): GameState {
     territory,
   };
 
+  let finalState: GameState;
   if (territory.isGameOver) {
-    return {
+    finalState = {
       ...stateWithTerritory,
       phase: 'game_over',
       lastSkippedPlayerIds: [],
     };
+  } else {
+    const nextStartIdx = (state.currentPlayerIndex + 1) % state.players.length;
+    finalState = advanceTurnWithAutoSkip(stateWithTerritory, nextStartIdx, false);
   }
 
-  const nextStartIdx = (state.currentPlayerIndex + 1) % state.players.length;
-  return advanceTurnWithAutoSkip(stateWithTerritory, nextStartIdx, false);
+  const actionEvent: TurnActionEvent = {
+    kind: 'turn',
+    turnNumber: nextTurnNumber,
+    playerId: actor.id,
+    actorIsAI: actor.isAI,
+    pieceId: piece.id,
+    pieceKind: piece.kind,
+    from,
+    to,
+    isStay,
+    usedWallBreak: brokenWall !== null,
+    brokenWall,
+    placedWall: cloneWallEdge(cleanEdge),
+    timedOut: false,
+    skippedPlayerIds: finalState.lastSkippedPlayerIds.slice(),
+  };
+
+  return {
+    ...finalState,
+    lastActionEvent: actionEvent,
+  };
 }
 
 export function cancelTurnMove(state: GameState): GameState {
@@ -849,46 +909,52 @@ function completePlaceWallTimeout(
   state: GameState,
   actorName: string,
   rng: RngFn,
-): GameState {
+): TurnTimeoutResolution {
   if (state.phase !== 'place_wall' || state.turnSubState.selectedPieceId === null) {
-    return state;
+    return { state, event: null };
   }
   const piece = state.pieces.find((p) => p.id === state.turnSubState.selectedPieceId);
   if (!piece) {
-    return state;
+    return { state, event: null };
   }
   const legalWalls = getLegalWallPlacements(state, { row: piece.row, col: piece.col });
   if (legalWalls.length === 0) {
-    return state;
+    return { state, event: null };
   }
   const chosenWall = pickRandom(legalWalls, rng);
   const completed = placeWall(state, chosenWall);
-  if (completed === state) {
-    return state;
+  if (completed === state || completed.lastActionEvent?.kind !== 'turn') {
+    return { state, event: null };
   }
-  return {
+  const timedOutEvent: TurnActionEvent = {
+    ...completed.lastActionEvent,
+    timedOut: true,
+  };
+  const nextState: GameState = {
     ...completed,
     lastActionSummary: `시간 초과! ${actorName}의 랜덤 벽이 자동 설치되었습니다.`,
+    lastActionEvent: timedOutEvent,
   };
+  return { state: nextState, event: timedOutEvent };
 }
 
-export function handleTurnTimeout(
+export function resolveTurnTimeout(
   state: GameState,
   rng: RngFn = Math.random,
-): GameState {
+): TurnTimeoutResolution {
   if (state.phase === 'game_over') {
-    return state;
+    return { state, event: null };
   }
 
   // Case 1: Placement timeout
   if (state.phase === 'placement') {
     if (state.placementStep < 0 || state.placementStep >= state.placementQueue.length) {
-      return state;
+      return { state, event: null };
     }
     const playerId = state.placementQueue[state.placementStep];
     const actor = state.players[playerId];
     if (!actor) {
-      return state;
+      return { state, event: null };
     }
 
     const emptyCells: CellPos[] = [];
@@ -900,7 +966,7 @@ export function handleTurnTimeout(
       }
     }
     if (emptyCells.length === 0) {
-      return state;
+      return { state, event: null };
     }
 
     const pos = pickRandom(emptyCells, rng);
@@ -908,7 +974,7 @@ export function handleTurnTimeout(
     if (state.ruleVariant === 'wallgo2') {
       const remaining = getRemainingPlacementKinds(state, playerId);
       if (remaining.length === 0) {
-        return state;
+        return { state, event: null };
       }
       if (remaining.length === 1) {
         kind = remaining[0];
@@ -920,18 +986,24 @@ export function handleTurnTimeout(
     }
 
     const placed = placeInitialPiece(state, pos, kind);
-    if (placed === state) {
-      return state;
+    if (placed === state || placed.lastActionEvent?.kind !== 'placement') {
+      return { state, event: null };
     }
-    return {
+    const timedOutEvent: PlacementActionEvent = {
+      ...placed.lastActionEvent,
+      timedOut: true,
+    };
+    const nextState: GameState = {
       ...placed,
       lastActionSummary: `시간 초과! ${actor.name}의 말이 ${cellToCoordLabel(pos)}에 자동 배치되었습니다.`,
+      lastActionEvent: timedOutEvent,
     };
+    return { state: nextState, event: timedOutEvent };
   }
 
   const actor = state.players[state.currentPlayerIndex];
   if (!actor) {
-    return state;
+    return { state, event: null };
   }
 
   // Case 2: Place-wall timeout (keep moved piece, place random adjacent open wall)
@@ -943,30 +1015,31 @@ export function handleTurnTimeout(
   if (state.phase === 'move_piece' && state.turnSubState.brokenWallBeforeMove !== null) {
     const pieceId = state.turnSubState.selectedPieceId;
     if (pieceId === null) {
-      return state;
+      return { state, event: null };
     }
     const piece = state.pieces.find((p) => p.id === pieceId);
     if (!piece) {
-      return state;
+      return { state, event: null };
     }
     const moves = getWallGo1Moves(state, pieceId);
     if (moves.length === 0) {
-      return state;
+      return { state, event: null };
     }
     const originCell: CellPos = { row: piece.row, col: piece.col };
     const stayMove = moves.find((m) => isSameCellPos(m, originCell));
     const dest = stayMove !== undefined ? stayMove : pickRandom(moves, rng);
     const moved = movePiece(state, dest);
     if (moved === state) {
-      return state;
+      return { state, event: null };
     }
-    return completePlaceWallTimeout(moved, actor.name, rng);
+    const res = completePlaceWallTimeout(moved, actor.name, rng);
+    return res.event === null ? { state, event: null } : res;
   }
 
   // Normalize clean pre-break move_piece back to select_piece so all own pieces are considered.
   const base = state.phase === 'move_piece' ? deselectPiece(state) : state;
   if (base.phase !== 'select_piece') {
-    return state;
+    return { state, event: null };
   }
 
   const ownPieces = base.pieces.filter((p) => p.ownerId === actor.id);
@@ -996,9 +1069,10 @@ export function handleTurnTimeout(
       const selected = selectPiece(base, chosen.pieceId);
       const moved = movePiece(selected, chosen.dest);
       if (moved === selected) {
-        return state;
+        return { state, event: null };
       }
-      return completePlaceWallTimeout(moved, actor.name, rng);
+      const res = completePlaceWallTimeout(moved, actor.name, rng);
+      return res.event === null ? { state, event: null } : res;
     }
 
     // Tier 3 fallback: Wall Break ONLY if 0 normal moves exist across all own pieces.
@@ -1011,7 +1085,7 @@ export function handleTurnTimeout(
       }
     }
     if (breakCandidates.length === 0) {
-      return state;
+      return { state, event: null };
     }
 
     const chosen = pickRandom(breakCandidates, rng);
@@ -1019,12 +1093,12 @@ export function handleTurnTimeout(
     const toggled = toggleWallBreak(selected);
     const broken = breakWallAt(toggled, chosen.wall);
     if (broken === toggled) {
-      return state;
+      return { state, event: null };
     }
     const postBreakMoves = getWallGo1Moves(broken, chosen.pieceId);
     const lockedPiece = broken.pieces.find((p) => p.id === chosen.pieceId);
     if (!lockedPiece || postBreakMoves.length === 0) {
-      return state;
+      return { state, event: null };
     }
     const stayCell = postBreakMoves.find(
       (m) => m.row === lockedPiece.row && m.col === lockedPiece.col,
@@ -1032,9 +1106,10 @@ export function handleTurnTimeout(
     const dest = stayCell !== undefined ? stayCell : pickRandom(postBreakMoves, rng);
     const moved = movePiece(broken, dest);
     if (moved === broken) {
-      return state;
+      return { state, event: null };
     }
-    return completePlaceWallTimeout(moved, actor.name, rng);
+    const res = completePlaceWallTimeout(moved, actor.name, rng);
+    return res.event === null ? { state, event: null } : res;
   }
 
   // Case 5: Wall Go II select_piece / pre-break move_piece timeout
@@ -1062,9 +1137,10 @@ export function handleTurnTimeout(
     const selected = selectPiece(base, chosen.pieceId);
     const moved = movePiece(selected, chosen.dest);
     if (moved === selected) {
-      return state;
+      return { state, event: null };
     }
-    return completePlaceWallTimeout(moved, actor.name, rng);
+    const res = completePlaceWallTimeout(moved, actor.name, rng);
+    return res.event === null ? { state, event: null } : res;
   }
 
   // Tier 3 fallback: Wall Go II path-through Wall Break (handles 1-wall & 2-wall diagonals).
@@ -1084,7 +1160,7 @@ export function handleTurnTimeout(
     }
   }
   if (breakCandidates.length === 0) {
-    return state;
+    return { state, event: null };
   }
 
   const chosen = pickRandom(breakCandidates, rng);
@@ -1092,17 +1168,187 @@ export function handleTurnTimeout(
   const toggled = toggleWallBreak(selected);
   let afterDest = selectWallGo2BreakDestination(toggled, chosen.dest);
   if (afterDest === toggled) {
-    return state;
+    return { state, event: null };
   }
   if (afterDest.turnSubState.pendingBreakChoice !== null) {
     const confirmed = confirmWallGo2BreakWall(afterDest, chosen.wall);
     if (confirmed === afterDest) {
-      return state;
+      return { state, event: null };
     }
     afterDest = confirmed;
   }
 
-  return completePlaceWallTimeout(afterDest, actor.name, rng);
+  const res = completePlaceWallTimeout(afterDest, actor.name, rng);
+  return res.event === null ? { state, event: null } : res;
+}
+
+export function handleTurnTimeout(
+  state: GameState,
+  rng: RngFn = Math.random,
+): GameState {
+  return resolveTurnTimeout(state, rng).state;
+}
+
+// ============================================================================
+// Authoritative Atomic Turn Execution & Controller Takeover Helpers (v2)
+// ============================================================================
+
+const VALID_AI_DIFFICULTIES: ReadonlySet<AIDifficulty> = new Set([
+  'easy',
+  'normal',
+  'hard',
+]);
+
+function assertAtomicTransition(
+  prev: GameState,
+  next: GameState,
+  step: string,
+): GameState {
+  if (next === prev) {
+    throw new Error(`applyAtomicTurnAction failed at "${step}": engine returned no-op`);
+  }
+  return next;
+}
+
+/**
+ * Executes a complete turn atomically strictly through pure `src/engine` transitions.
+ * Throws `Error` if ANY engine transition returns a no-op or if payload fields violate rules.
+ * Shared by AI bots (`applyBotTurnAction`), online server validation, and deterministic replay.
+ */
+export function applyAtomicTurnAction(
+  state: GameState,
+  action: AtomicTurnAction,
+): GameState {
+  if (state.phase !== 'select_piece') {
+    throw new Error(
+      `applyAtomicTurnAction requires phase "select_piece", received "${state.phase}"`,
+    );
+  }
+  const actor = state.players[state.currentPlayerIndex];
+  if (!actor) {
+    throw new Error(
+      `applyAtomicTurnAction: invalid currentPlayerIndex ${state.currentPlayerIndex}`,
+    );
+  }
+  if (!action || typeof action !== 'object') {
+    throw new Error('applyAtomicTurnAction: action must be a non-null object');
+  }
+  if (typeof action.pieceId !== 'string' || action.pieceId.length === 0) {
+    throw new Error('applyAtomicTurnAction: pieceId must be a non-empty string');
+  }
+  if (typeof action.useWallBreak !== 'boolean') {
+    throw new Error('applyAtomicTurnAction: useWallBreak must be a boolean');
+  }
+  if (
+    !action.destination ||
+    typeof action.destination !== 'object' ||
+    !isInBounds(action.destination.row, action.destination.col)
+  ) {
+    throw new Error('applyAtomicTurnAction: destination is not a valid in-bounds cell');
+  }
+  if (
+    !action.placeWall ||
+    typeof action.placeWall !== 'object' ||
+    !isValidWallEdge(action.placeWall)
+  ) {
+    throw new Error('applyAtomicTurnAction: placeWall is not a valid internal wall edge');
+  }
+  if (action.useWallBreak && (action.breakWall === null || action.breakWall === undefined)) {
+    throw new Error('applyAtomicTurnAction: useWallBreak is true but breakWall is null');
+  }
+  if (!action.useWallBreak && action.breakWall !== null && action.breakWall !== undefined) {
+    throw new Error('applyAtomicTurnAction: useWallBreak is false but breakWall is non-null');
+  }
+  if (
+    action.breakWall !== null &&
+    action.breakWall !== undefined &&
+    (typeof action.breakWall !== 'object' || !isValidWallEdge(action.breakWall))
+  ) {
+    throw new Error('applyAtomicTurnAction: breakWall is not a valid internal wall edge');
+  }
+
+  let cur = assertAtomicTransition(state, selectPiece(state, action.pieceId), 'selectPiece');
+
+  if (!action.useWallBreak) {
+    cur = assertAtomicTransition(cur, movePiece(cur, action.destination), 'movePiece');
+  } else {
+    const breakWall = action.breakWall!;
+    cur = assertAtomicTransition(cur, toggleWallBreak(cur), 'toggleWallBreak');
+
+    if (state.ruleVariant === 'wallgo1') {
+      cur = assertAtomicTransition(cur, breakWallAt(cur, breakWall), 'breakWallAt');
+      cur = assertAtomicTransition(cur, movePiece(cur, action.destination), 'movePiece');
+    } else {
+      cur = assertAtomicTransition(
+        cur,
+        selectWallGo2BreakDestination(cur, action.destination),
+        'selectWallGo2BreakDestination',
+      );
+      if (cur.turnSubState.pendingBreakChoice !== null) {
+        cur = assertAtomicTransition(
+          cur,
+          confirmWallGo2BreakWall(cur, breakWall),
+          'confirmWallGo2BreakWall',
+        );
+      }
+      const broken = cur.turnSubState.brokenWallBeforeMove;
+      if (
+        cur.phase !== 'place_wall' ||
+        broken === null ||
+        !isSameWallEdge(broken, breakWall)
+      ) {
+        throw new Error(
+          `applyAtomicTurnAction: Wall Go II breakWall mismatch (requested ${wallKey(breakWall)}, actual ${broken ? wallKey(broken) : 'none'})`,
+        );
+      }
+    }
+  }
+
+  cur = assertAtomicTransition(cur, placeWall(cur, action.placeWall), 'placeWall');
+  return cur;
+}
+
+export function normalizeTurnForTakeover(state: GameState): GameState {
+  return normalizeToCleanTurnEntry(state);
+}
+
+export function setPlayerControllerInGame(
+  state: GameState,
+  playerId: number,
+  isAI: boolean,
+  aiDifficulty?: AIDifficulty,
+): GameState {
+  if (state.phase === 'game_over' || typeof isAI !== 'boolean') {
+    return state;
+  }
+  const targetIdx = state.players.findIndex((p) => p.id === playerId);
+  if (targetIdx === -1) {
+    return state;
+  }
+  const target = state.players[targetIdx];
+  const nextDifficulty: AIDifficulty =
+    aiDifficulty !== undefined ? aiDifficulty : target.aiDifficulty;
+  if (!VALID_AI_DIFFICULTIES.has(nextDifficulty)) {
+    return state;
+  }
+  if (target.isAI === isAI && target.aiDifficulty === nextDifficulty) {
+    return state;
+  }
+
+  const isActivePlayer = state.players[state.currentPlayerIndex]?.id === playerId;
+  const baseState =
+    isActivePlayer && state.phase !== 'placement'
+      ? normalizeTurnForTakeover(state)
+      : state;
+
+  const nextPlayers = baseState.players.map((pl, idx) =>
+    idx === targetIdx ? { ...pl, isAI, aiDifficulty: nextDifficulty } : pl,
+  );
+
+  return {
+    ...baseState,
+    players: nextPlayers,
+  };
 }
 
 // ============================================================================

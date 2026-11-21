@@ -4,6 +4,8 @@ import './styles/tokens.css';
 import './styles/layout.css';
 import './styles/board.css';
 import './styles/lobby.css';
+import './styles/online.css';
+import './styles/history.css';
 import App from './App';
 
 const rootElement = document.getElementById('root');

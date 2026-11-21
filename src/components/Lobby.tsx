@@ -1,8 +1,24 @@
-import type { AIDifficulty, GameFormat, LobbyConfig, PlayerConfig, RuleVariant, TimerSeconds } from '../engine';
+import type { ReactNode } from 'react';
+import type {
+  AIDifficulty,
+  GameFormat,
+  LobbyConfig,
+  PlayerConfig,
+  RuleVariant,
+  TimerSeconds,
+} from '../engine';
+import { LanguageToggle, useI18n } from '../i18n';
+import { NICKNAME_MAX_LENGTH } from '../shared';
+
+export type LobbyModeTab = 'local' | 'online';
 
 export interface LobbyProps {
   config: LobbyConfig;
   allSeats: PlayerConfig[];
+  activeTab?: LobbyModeTab;
+  onTabChange?: (tab: LobbyModeTab) => void;
+  onOpenHistory?: () => void;
+  onlinePanelSlot?: ReactNode;
   onChangeVariant: (variant: RuleVariant) => void;
   onChangeFormat: (format: GameFormat) => void;
   onChangeTimer: (timerSeconds: TimerSeconds) => void;
@@ -15,19 +31,22 @@ export interface LobbyProps {
 
 const CONTROLLER_OPTIONS: readonly {
   key: 'human' | 'ai-easy' | 'ai-normal' | 'ai-hard';
-  label: string;
   isAI: boolean;
   difficulty: AIDifficulty;
 }[] = [
-  { key: 'human', label: '사람', isAI: false, difficulty: 'normal' },
-  { key: 'ai-easy', label: 'AI 쉬움', isAI: true, difficulty: 'easy' },
-  { key: 'ai-normal', label: 'AI 보통', isAI: true, difficulty: 'normal' },
-  { key: 'ai-hard', label: 'AI 어려움', isAI: true, difficulty: 'hard' },
+  { key: 'human', isAI: false, difficulty: 'normal' },
+  { key: 'ai-easy', isAI: true, difficulty: 'easy' },
+  { key: 'ai-normal', isAI: true, difficulty: 'normal' },
+  { key: 'ai-hard', isAI: true, difficulty: 'hard' },
 ];
 
 export function Lobby({
   config,
   allSeats,
+  activeTab = 'local',
+  onTabChange,
+  onOpenHistory,
+  onlinePanelSlot,
   onChangeVariant,
   onChangeFormat,
   onChangeTimer,
@@ -37,6 +56,7 @@ export function Lobby({
   onOpenRules,
   onStart,
 }: LobbyProps) {
+  const { t } = useI18n();
   const activeSeatCount = config.format === '3p' ? 3 : 2;
   const visibleSeats = allSeats.slice(0, activeSeatCount);
 
@@ -55,208 +75,266 @@ export function Lobby({
             </div>
             <div className="lobby-title-wrap">
               <h1 className="lobby-title" data-testid="lobby-title">
-                벽바둑
+                {t.lobby.title}
               </h1>
-              <p className="lobby-tagline">데블스 플랜 감옥매치 · 7×7 영역 쟁탈 전략 보드게임</p>
+              <p className="lobby-tagline">{t.lobby.tagline}</p>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn-lobby-rules"
-            data-testid="rules-button"
-            aria-label="게임 규칙 보기"
-            onClick={onOpenRules}
-          >
-            규칙 보기
-          </button>
+          <div className="lobby-header-actions">
+            <LanguageToggle />
+            <button
+              type="button"
+              className="btn-lobby-rules"
+              data-testid="rules-button"
+              aria-label={t.lobby.rulesButtonAria}
+              onClick={onOpenRules}
+            >
+              {t.lobby.rulesButton}
+            </button>
+          </div>
         </header>
 
-        <div className="lobby-content">
-          {/* Left Column: Variant, Format, Timer, Shuffle */}
-          <div className="lobby-column">
-            <section className="lobby-section" aria-label="게임 룰 버전 선택">
-              <span className="lobby-label">게임 룰</span>
-              <div className="variant-grid">
-                <button
-                  type="button"
-                  className="variant-card"
-                  data-testid="variant-wallgo1"
-                  aria-pressed={config.ruleVariant === 'wallgo1'}
-                  onClick={() => onChangeVariant('wallgo1')}
-                >
-                  <span className="variant-card-head">
-                    <span className="variant-card-name">벽바둑</span>
-                    <span className="variant-card-sub">시즌 2 · 원작</span>
-                  </span>
-                  <span className="variant-card-desc">
-                    상하좌우 0~2칸 자유 이동(제자리·꺾기) · 3인전 인접 벽 부수기 1회
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="variant-card"
-                  data-testid="variant-wallgo2"
-                  aria-pressed={config.ruleVariant === 'wallgo2'}
-                  onClick={() => onChangeVariant('wallgo2')}
-                >
-                  <span className="variant-card-head">
-                    <span className="variant-card-name">벽바둑 II</span>
-                    <span className="variant-card-sub">시즌 3 · 사각/원형</span>
-                  </span>
-                  <span className="variant-card-desc">
-                    사각(직선 1~2) · 원형(1칸·90° 꺾기) · 제자리 불가 · 경로 벽 부수기
-                  </span>
-                </button>
-              </div>
-            </section>
-
-            <div className="lobby-inline-row">
-              <section className="lobby-section" aria-label="경기 인원 선택">
-                <span className="lobby-label">경기 인원</span>
-                <div className="segmented-control">
-                  <button
-                    type="button"
-                    className="segmented-btn"
-                    data-testid="format-3p"
-                    aria-pressed={config.format === '3p'}
-                    onClick={() => onChangeFormat('3p')}
-                  >
-                    3인전
-                  </button>
-                  <button
-                    type="button"
-                    className="segmented-btn"
-                    data-testid="format-2p"
-                    aria-pressed={config.format === '2p'}
-                    onClick={() => onChangeFormat('2p')}
-                  >
-                    2인전
-                  </button>
-                </div>
-              </section>
-
-              <section className="lobby-section" aria-label="턴 제한 시간 선택">
-                <span className="lobby-label">턴 제한 시간</span>
-                <div className="segmented-control">
-                  <button
-                    type="button"
-                    className="segmented-btn"
-                    data-testid="timer-0"
-                    aria-pressed={config.timerSeconds === 0}
-                    onClick={() => onChangeTimer(0)}
-                  >
-                    무제한
-                  </button>
-                  <button
-                    type="button"
-                    className="segmented-btn"
-                    data-testid="timer-90"
-                    aria-pressed={config.timerSeconds === 90}
-                    onClick={() => onChangeTimer(90)}
-                  >
-                    90초
-                  </button>
-                  <button
-                    type="button"
-                    className="segmented-btn"
-                    data-testid="timer-60"
-                    aria-pressed={config.timerSeconds === 60}
-                    onClick={() => onChangeTimer(60)}
-                  >
-                    60초
-                  </button>
-                </div>
-              </section>
-            </div>
-
-            <div className="shuffle-row">
-              <div className="shuffle-text">
-                <span className="shuffle-title">시작 순서 랜덤 섞기</span>
-                <span className="shuffle-desc">켜면 매 경기 시작 시 좌석 순서를 무작위로 추첨합니다</span>
-              </div>
-              <button
-                type="button"
-                className="switch-btn"
-                data-testid="shuffle-order-toggle"
-                role="switch"
-                aria-checked={config.shuffleOrder}
-                aria-label="시작 순서 랜덤 섞기"
-                onClick={onToggleShuffle}
-              >
-                <span className="switch-thumb" aria-hidden="true" />
-              </button>
-            </div>
+        <nav className="lobby-nav" aria-label={t.nav.ariaLabel}>
+          <div className="lobby-nav-tabs" role="tablist" aria-label={t.nav.ariaLabel}>
+            <button
+              type="button"
+              role="tab"
+              className="lobby-nav-tab"
+              data-testid="nav-local-tab"
+              aria-selected={activeTab === 'local'}
+              onClick={() => onTabChange?.('local')}
+            >
+              {t.nav.localTab}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className="lobby-nav-tab"
+              data-testid="nav-online-tab"
+              aria-selected={activeTab === 'online'}
+              onClick={() => onTabChange?.('online')}
+            >
+              {t.nav.onlineTab}
+            </button>
           </div>
-
-          {/* Right Column: Player Seat Config */}
-          <div className="lobby-column">
-            <section className="lobby-section" aria-label="플레이어 설정">
-              <span className="lobby-label">
-                플레이어 구성 ({config.format === '3p' ? '각자 말 2개 · 벽 부수기 1회' : '각자 말 4개 · 2개 고정 · 벽 부수기 없음'})
-              </span>
-              <div className="seat-list">
-                {visibleSeats.map((seat, idx) => (
-                  <div
-                    key={idx}
-                    className="seat-row"
-                    data-testid={`seat-row-${idx}`}
-                    data-seat-index={idx}
-                    data-player-color={seat.colorToken}
-                  >
-                    <div className="seat-row-top">
-                      <span className="seat-badge">{idx + 1}P</span>
-                      <input
-                        type="text"
-                        className="seat-name-input"
-                        data-testid={`seat-name-${idx}`}
-                        aria-label={`${idx + 1}P 이름`}
-                        value={seat.name}
-                        maxLength={12}
-                        placeholder={`플레이어 ${idx + 1}`}
-                        onChange={(e) => onChangeSeatName(idx, e.target.value)}
-                      />
-                    </div>
-                    <div className="seat-controller-group" role="group" aria-label={`${idx + 1}P 조작 방식`}>
-                      {CONTROLLER_OPTIONS.map((opt) => {
-                        const pressed = opt.isAI
-                          ? seat.isAI && seat.aiDifficulty === opt.difficulty
-                          : !seat.isAI;
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            className="seat-ctrl-btn"
-                            data-testid={`seat-controller-${idx}-${opt.key}`}
-                            aria-pressed={pressed}
-                            onClick={() => onChangeSeatController(idx, opt.isAI, opt.difficulty)}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        </div>
-
-        <footer className="lobby-footer">
-          <p className="lobby-summary">
-            {config.ruleVariant === 'wallgo1' ? '벽바둑 (시즌 2)' : '벽바둑 II (시즌 3)'} ·{' '}
-            {config.format === '3p' ? '3인전 (종료 후 2라운드 1:1 가능)' : '2인전 1:1'} ·{' '}
-            {config.timerSeconds === 0 ? '시간 제한 없음' : `턴당 ${config.timerSeconds}초`}
-          </p>
           <button
             type="button"
-            className="btn-start-game"
-            data-testid="start-game-button"
-            onClick={onStart}
+            className="lobby-nav-history"
+            data-testid="nav-history-tab"
+            aria-label={t.nav.historyAria}
+            onClick={() => onOpenHistory?.()}
           >
-            게임 시작
+            {t.nav.historyTab}
           </button>
-        </footer>
+        </nav>
+
+        {activeTab === 'local' ? (
+          <>
+            <div className="lobby-content">
+              {/* Left Column: Variant, Format, Timer, Shuffle */}
+              <div className="lobby-column">
+                <section className="lobby-section" aria-label={t.lobby.ruleSectionAria}>
+                  <span className="lobby-label">{t.lobby.ruleLabel}</span>
+                  <div className="variant-grid">
+                    <button
+                      type="button"
+                      className="variant-card"
+                      data-testid="variant-wallgo1"
+                      aria-pressed={config.ruleVariant === 'wallgo1'}
+                      onClick={() => onChangeVariant('wallgo1')}
+                    >
+                      <span className="variant-card-head">
+                        <span className="variant-card-name">{t.lobby.wg1Name}</span>
+                        <span className="variant-card-sub">{t.lobby.wg1Sub}</span>
+                      </span>
+                      <span className="variant-card-desc">{t.lobby.wg1Desc}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="variant-card"
+                      data-testid="variant-wallgo2"
+                      aria-pressed={config.ruleVariant === 'wallgo2'}
+                      onClick={() => onChangeVariant('wallgo2')}
+                    >
+                      <span className="variant-card-head">
+                        <span className="variant-card-name">{t.lobby.wg2Name}</span>
+                        <span className="variant-card-sub">{t.lobby.wg2Sub}</span>
+                      </span>
+                      <span className="variant-card-desc">{t.lobby.wg2Desc}</span>
+                    </button>
+                  </div>
+                </section>
+
+                <div className="lobby-inline-row">
+                  <section className="lobby-section" aria-label={t.lobby.formatSectionAria}>
+                    <span className="lobby-label">{t.lobby.formatLabel}</span>
+                    <div className="segmented-control">
+                      <button
+                        type="button"
+                        className="segmented-btn"
+                        data-testid="format-3p"
+                        aria-pressed={config.format === '3p'}
+                        onClick={() => onChangeFormat('3p')}
+                      >
+                        {t.lobby.format3p}
+                      </button>
+                      <button
+                        type="button"
+                        className="segmented-btn"
+                        data-testid="format-2p"
+                        aria-pressed={config.format === '2p'}
+                        onClick={() => onChangeFormat('2p')}
+                      >
+                        {t.lobby.format2p}
+                      </button>
+                    </div>
+                  </section>
+
+                  <section className="lobby-section" aria-label={t.lobby.timerSectionAria}>
+                    <span className="lobby-label">{t.lobby.timerLabel}</span>
+                    <div className="segmented-control">
+                      <button
+                        type="button"
+                        className="segmented-btn"
+                        data-testid="timer-0"
+                        aria-pressed={config.timerSeconds === 0}
+                        onClick={() => onChangeTimer(0)}
+                      >
+                        {t.lobby.timerUnlimited}
+                      </button>
+                      <button
+                        type="button"
+                        className="segmented-btn"
+                        data-testid="timer-90"
+                        aria-pressed={config.timerSeconds === 90}
+                        onClick={() => onChangeTimer(90)}
+                      >
+                        {t.lobby.timerSeconds(90)}
+                      </button>
+                      <button
+                        type="button"
+                        className="segmented-btn"
+                        data-testid="timer-60"
+                        aria-pressed={config.timerSeconds === 60}
+                        onClick={() => onChangeTimer(60)}
+                      >
+                        {t.lobby.timerSeconds(60)}
+                      </button>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="shuffle-row">
+                  <div className="shuffle-text">
+                    <span className="shuffle-title">{t.lobby.shuffleTitle}</span>
+                    <span className="shuffle-desc">{t.lobby.shuffleDesc}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="switch-btn"
+                    data-testid="shuffle-order-toggle"
+                    role="switch"
+                    aria-checked={config.shuffleOrder}
+                    aria-label={t.lobby.shuffleAria}
+                    onClick={onToggleShuffle}
+                  >
+                    <span className="switch-thumb" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Column: Player Seat Config */}
+              <div className="lobby-column">
+                <section className="lobby-section" aria-label={t.lobby.seatsSectionAria}>
+                  <span className="lobby-label">
+                    {config.format === '3p' ? t.lobby.seatsLabel3p : t.lobby.seatsLabel2p}
+                  </span>
+                  <div className="seat-list">
+                    {visibleSeats.map((seat, idx) => (
+                      <div
+                        key={idx}
+                        className="seat-row"
+                        data-testid={`seat-row-${idx}`}
+                        data-seat-index={idx}
+                        data-player-color={seat.colorToken}
+                      >
+                        <div className="seat-row-top">
+                          <span className="seat-badge">{idx + 1}P</span>
+                          <input
+                            type="text"
+                            className="seat-name-input"
+                            data-testid={`seat-name-${idx}`}
+                            aria-label={t.lobby.seatNameAria(idx + 1)}
+                            value={seat.name}
+                            maxLength={NICKNAME_MAX_LENGTH}
+                            placeholder={t.lobby.seatNamePlaceholder(idx + 1)}
+                            onChange={(e) => onChangeSeatName(idx, e.target.value)}
+                          />
+                        </div>
+                        <div
+                          className="seat-controller-group"
+                          role="group"
+                          aria-label={t.lobby.seatControllerAria(idx + 1)}
+                        >
+                          {CONTROLLER_OPTIONS.map((opt) => {
+                            const pressed = opt.isAI
+                              ? seat.isAI && seat.aiDifficulty === opt.difficulty
+                              : !seat.isAI;
+                            return (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                className="seat-ctrl-btn"
+                                data-testid={`seat-controller-${idx}-${opt.key}`}
+                                aria-pressed={pressed}
+                                onClick={() =>
+                                  onChangeSeatController(idx, opt.isAI, opt.difficulty)
+                                }
+                              >
+                                {t.lobby.controllers[opt.key]}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <footer className="lobby-footer">
+              <p className="lobby-summary">
+                {t.lobby.footerSummary(
+                  config.ruleVariant,
+                  config.format,
+                  config.timerSeconds,
+                )}
+              </p>
+              <button
+                type="button"
+                className="btn-start-game"
+                data-testid="start-game-button"
+                onClick={onStart}
+              >
+                {t.lobby.startGame}
+              </button>
+            </footer>
+          </>
+        ) : (
+          onlinePanelSlot ?? (
+            <section
+              className="online-panel online-panel--placeholder"
+              data-testid="online-panel"
+              data-redis-configured="checking"
+            >
+              <div className="online-card">
+                <h2 className="online-card-title">{t.online.panelTitle}</h2>
+                <p className="online-card-subtitle">{t.online.comingSoonFallback}</p>
+              </div>
+            </section>
+          )
+        )}
       </div>
     </main>
   );

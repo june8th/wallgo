@@ -1,4 +1,4 @@
-import { BOARD_SIZE, DEFAULT_PLAYER_NAMES } from './types';
+import { BOARD_SIZE, DEFAULT_PLAYER_NAMES } from './types.js';
 import type {
   AIDifficulty,
   CellPos,
@@ -16,8 +16,8 @@ import type {
   TerritoryAnalysis,
   TurnSubState,
   WallGo2PieceKind,
-} from './types';
-import { analyzeTerritory } from './territory';
+} from './types.js';
+import { analyzeTerritory } from './territory.js';
 
 const PLACEMENT_QUEUE_3P: readonly number[] = [0, 1, 2, 2, 1, 0];
 const PLACEMENT_QUEUE_2P: readonly number[] = [0, 1, 1, 0];
@@ -171,6 +171,7 @@ export function createInitialGameState(
     timerSeconds: config.timerSeconds,
     lastSkippedPlayerIds: [],
     lastActionSummary: null,
+    lastActionEvent: null,
     territory: EMPTY_TERRITORY_PLACEHOLDER,
   };
 

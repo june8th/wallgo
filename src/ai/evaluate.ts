@@ -1,5 +1,5 @@
-import { BOARD_SIZE, isInBounds, isValidWallEdge } from '../engine';
-import type { GameState, RngFn, WallEdge, WallKey } from '../engine';
+import { BOARD_SIZE, isInBounds, isValidWallEdge } from '../engine/index.js';
+import type { GameState, RngFn, WallEdge, WallKey } from '../engine/index.js';
 
 const NUM_CELLS = BOARD_SIZE * BOARD_SIZE; // 49
 const NUM_H_WALLS = (BOARD_SIZE - 1) * BOARD_SIZE; // 42

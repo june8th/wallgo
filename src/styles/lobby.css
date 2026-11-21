@@ -7,6 +7,7 @@
   width: 100%;
   overflow: hidden;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding:
     max(14px, env(safe-area-inset-top))
@@ -15,15 +16,10 @@
     max(16px, env(safe-area-inset-left));
 }
 
-@media (max-height: 679px) {
-  .lobby-screen {
-    overflow-y: auto;
-    align-items: start;
-  }
-}
-
 .lobby-shell {
   width: min(980px, 100%);
+  min-width: 0;
+  max-width: 100%;
   max-height: 100%;
   display: flex;
   flex-direction: column;
@@ -38,6 +34,19 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
+@media (max-height: 679px), (max-width: 767px) {
+  .lobby-screen {
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-items: start;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lobby-shell {
+    max-height: none;
+  }
+}
+
 /* Header */
 .lobby-header {
   display: flex;
@@ -46,6 +55,13 @@
   gap: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.lobby-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .lobby-brand {
@@ -110,6 +126,15 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
+}
+
+/* iPad Split View (e.g. 820x820): switch Lobby to 2 columns for +220px vertical slack */
+@media (min-width: 760px) and (max-height: 860px) {
+  .lobby-content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 14px;
+    align-items: start;
+  }
 }
 
 @media (min-aspect-ratio: 6/5) and (min-width: 860px) {
@@ -230,6 +255,42 @@
   background: var(--wood-mid);
   color: var(--ink-on-dark);
   box-shadow: 0 2px 5px rgba(42, 31, 22, 0.18);
+}
+
+/* iPad Split View compact density (placed strictly after base .variant-card, .lobby-inline-row & .segmented-btn) */
+@media (min-width: 760px) and (max-width: 960px) and (max-height: 860px) {
+  .lobby-screen {
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .lobby-shell {
+    padding: 14px 18px;
+    gap: 10px;
+  }
+
+  .lobby-header {
+    padding-bottom: 10px;
+  }
+
+  .lobby-inline-row {
+    grid-template-columns: 0.9fr 1.35fr;
+    gap: 8px;
+  }
+
+  .segmented-btn {
+    font-size: 0.78rem;
+    padding: 6px 4px;
+  }
+
+  .variant-card {
+    padding: 9px 10px;
+  }
+
+  .variant-card-head {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
 }
 
 /* Shuffle Switch Row */
@@ -425,5 +486,78 @@
 
   .btn-start-game {
     width: 100%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .lobby-shell {
+    width: min(1020px, 100%);
+  }
+}
+
+@media (max-width: 640px) {
+  .lobby-screen {
+    padding:
+      max(10px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+  }
+
+  .lobby-shell {
+    padding: 14px 12px;
+    gap: 12px;
+    border-radius: var(--radius-lg);
+  }
+
+  .lobby-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 10px;
+  }
+
+  .lobby-emblem {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .lobby-title {
+    font-size: 1.35rem;
+  }
+
+  .lobby-tagline {
+    font-size: 0.76rem;
+  }
+
+  .lobby-header-actions {
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  .btn-lobby-rules {
+    min-height: 36px;
+    padding: 6px 11px;
+    font-size: 0.8rem;
+  }
+
+  .variant-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-inline-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .seat-ctrl-btn {
+    font-size: 0.72rem;
+    padding: 4px 2px;
+  }
+
+  .btn-start-game {
+    min-width: 0;
+    min-height: 50px;
+    font-size: 1rem;
   }
 }

@@ -1,26 +1,16 @@
 import {
   BOARD_SIZE,
-  breakWallAt,
-  confirmWallGo2BreakWall,
+  applyAtomicTurnAction,
   getRemainingPlacementKinds,
   isInBounds,
-  isSameWallEdge,
-  isValidWallEdge,
-  movePiece,
-  placeWall,
-  selectPiece,
-  selectWallGo2BreakDestination,
-  toggleWallBreak,
-  wallKey,
-} from '../engine';
+} from '../engine/index.js';
 import type {
   AIDifficulty,
-  CellPos,
+  AtomicTurnAction,
   GameState,
   PieceKind,
   RngFn,
-  WallEdge,
-} from '../engine';
+} from '../engine/index.js';
 import {
   analyzeComponentsFast,
   createEvalScratch,
@@ -41,8 +31,8 @@ import {
   shouldAutoSkipPlayerFast,
   unmakeCompactAction,
   wallCodeBetween,
-} from './evaluate';
-import type { CompactAction, EvalScratch, SearchBoard } from './evaluate';
+} from './evaluate.js';
+import type { CompactAction, EvalScratch, SearchBoard } from './evaluate.js';
 
 export interface BotPlacementAction {
   row: number;
@@ -50,13 +40,7 @@ export interface BotPlacementAction {
   kind: PieceKind;
 }
 
-export interface BotTurnAction {
-  pieceId: string;
-  useWallBreak: boolean;
-  breakWall: WallEdge | null;
-  destination: CellPos;
-  placeWall: WallEdge;
-}
+export type BotTurnAction = AtomicTurnAction;
 
 const DR: readonly number[] = [-1, 1, 0, 0];
 const DC: readonly number[] = [0, 0, -1, 1];
@@ -76,13 +60,6 @@ interface ScoredAction {
   ply1Score: number;
   isTerminal: boolean;
   order: number;
-}
-
-function assertTransition(prev: GameState, next: GameState, step: string): GameState {
-  if (next === prev) {
-    throw new Error(`applyBotTurnAction failed at "${step}": engine returned no-op`);
-  }
-  return next;
 }
 
 function pickIndex(len: number, rng: RngFn): number {
@@ -881,68 +858,8 @@ export function chooseAiTurn(
 
 /**
  * Executes a `BotTurnAction` strictly through pure `src/engine` transitions.
- * Throws `Error` if ANY engine transition returns `next === prev` (no-op) or if
- * action fields violate engine rules (including Wall Go II 1-wall breakWall verification).
+ * Delegates to shared `applyAtomicTurnAction`.
  */
 export function applyBotTurnAction(state: GameState, action: BotTurnAction): GameState {
-  if (state.phase !== 'select_piece') {
-    throw new Error(
-      `applyBotTurnAction requires phase "select_piece", received "${state.phase}"`,
-    );
-  }
-  const actor = state.players[state.currentPlayerIndex];
-  if (!actor) {
-    throw new Error(
-      `applyBotTurnAction: invalid currentPlayerIndex ${state.currentPlayerIndex}`,
-    );
-  }
-  if (action.useWallBreak && action.breakWall === null) {
-    throw new Error('applyBotTurnAction: useWallBreak is true but breakWall is null');
-  }
-  if (!action.useWallBreak && action.breakWall !== null) {
-    throw new Error('applyBotTurnAction: useWallBreak is false but breakWall is non-null');
-  }
-  if (action.breakWall !== null && !isValidWallEdge(action.breakWall)) {
-    throw new Error('applyBotTurnAction: breakWall is not a valid internal wall edge');
-  }
-
-  let cur = assertTransition(state, selectPiece(state, action.pieceId), 'selectPiece');
-
-  if (!action.useWallBreak) {
-    cur = assertTransition(cur, movePiece(cur, action.destination), 'movePiece');
-  } else {
-    const breakWall = action.breakWall!;
-    cur = assertTransition(cur, toggleWallBreak(cur), 'toggleWallBreak');
-
-    if (state.ruleVariant === 'wallgo1') {
-      cur = assertTransition(cur, breakWallAt(cur, breakWall), 'breakWallAt');
-      cur = assertTransition(cur, movePiece(cur, action.destination), 'movePiece');
-    } else {
-      cur = assertTransition(
-        cur,
-        selectWallGo2BreakDestination(cur, action.destination),
-        'selectWallGo2BreakDestination',
-      );
-      if (cur.turnSubState.pendingBreakChoice !== null) {
-        cur = assertTransition(
-          cur,
-          confirmWallGo2BreakWall(cur, breakWall),
-          'confirmWallGo2BreakWall',
-        );
-      }
-      const broken = cur.turnSubState.brokenWallBeforeMove;
-      if (
-        cur.phase !== 'place_wall' ||
-        broken === null ||
-        !isSameWallEdge(broken, breakWall)
-      ) {
-        throw new Error(
-          `applyBotTurnAction: Wall Go II breakWall mismatch (requested ${wallKey(breakWall)}, actual ${broken ? wallKey(broken) : 'none'})`,
-        );
-      }
-    }
-  }
-
-  cur = assertTransition(cur, placeWall(cur, action.placeWall), 'placeWall');
-  return cur;
+  return applyAtomicTurnAction(state, action);
 }
