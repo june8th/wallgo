@@ -28,6 +28,28 @@ function readTrimmed(env: EnvMap, key: string): string {
   return typeof val === 'string' ? val.trim() : '';
 }
 
+function findPrefixedPair(
+  env: EnvMap,
+  urlSuffix: string,
+  tokenSuffix: string,
+  urlPredicate?: (url: string) => boolean,
+): { url: string; token: string } | null {
+  const keys = Object.keys(env).sort();
+  for (const key of keys) {
+    if (!key.endsWith(urlSuffix) || key === urlSuffix.slice(1)) {
+      continue;
+    }
+    const prefix = key.slice(0, key.length - urlSuffix.length);
+    const tokenKey = `${prefix}${tokenSuffix}`;
+    const url = readTrimmed(env, key);
+    const token = readTrimmed(env, tokenKey);
+    if (url.length > 0 && token.length > 0 && (!urlPredicate || urlPredicate(url))) {
+      return { url, token };
+    }
+  }
+  return null;
+}
+
 export function resolveStorageConfig(env: EnvMap = process.env): ResolvedStorageConfig {
   if (readTrimmed(env, 'WALLGO_FORCE_UNCONFIGURED') === '1') {
     return { mode: 'unconfigured', reason: 'forced' };
@@ -43,6 +65,32 @@ export function resolveStorageConfig(env: EnvMap = process.env): ResolvedStorage
   const kvToken = readTrimmed(env, 'KV_REST_API_TOKEN');
   if (kvUrl.length > 0 && kvToken.length > 0) {
     return { mode: 'redis', source: 'kv', url: kvUrl, token: kvToken };
+  }
+
+  const prefixedUpstash =
+    findPrefixedPair(env, '_UPSTASH_REDIS_REST_URL', '_UPSTASH_REDIS_REST_TOKEN') ??
+    findPrefixedPair(env, '_REDIS_REST_URL', '_REDIS_REST_TOKEN');
+  if (prefixedUpstash) {
+    return {
+      mode: 'redis',
+      source: 'upstash',
+      url: prefixedUpstash.url,
+      token: prefixedUpstash.token,
+    };
+  }
+
+  const prefixedKv =
+    findPrefixedPair(env, '_KV_REST_API_URL', '_KV_REST_API_TOKEN') ??
+    findPrefixedPair(env, '_REST_API_URL', '_REST_API_TOKEN', (u) =>
+      /^https:\/\/[^/]*upstash\.io\b/i.test(u),
+    );
+  if (prefixedKv) {
+    return {
+      mode: 'redis',
+      source: 'kv',
+      url: prefixedKv.url,
+      token: prefixedKv.token,
+    };
   }
 
   const isVercel =

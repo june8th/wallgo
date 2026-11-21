@@ -266,6 +266,32 @@ describe('M6 Backend & Deployment Infrastructure (INFRA-01..05)', () => {
         token: 'kvtok',
       });
 
+      // 3b. Vercel Marketplace custom-prefixed Redis/KV env vars
+      expect(
+        resolveStorageConfig({
+          VERCEL: '1',
+          WALLGO_KV_REST_API_URL: 'https://wallgo-kv.upstash.io',
+          WALLGO_KV_REST_API_TOKEN: 'prefixed_tok',
+        }),
+      ).toEqual({
+        mode: 'redis',
+        source: 'kv',
+        url: 'https://wallgo-kv.upstash.io',
+        token: 'prefixed_tok',
+      });
+      expect(
+        resolveStorageConfig({
+          VERCEL: '1',
+          STORAGE_UPSTASH_REDIS_REST_URL: 'https://storage.upstash.io',
+          STORAGE_UPSTASH_REDIS_REST_TOKEN: 'storage_tok',
+        }),
+      ).toEqual({
+        mode: 'redis',
+        source: 'upstash',
+        url: 'https://storage.upstash.io',
+        token: 'storage_tok',
+      });
+
       // 4. VERCEL=1 or VERCEL_ENV without Redis -> unconfigured
       expect(resolveStorageConfig({ VERCEL: '1' })).toEqual({
         mode: 'unconfigured',
